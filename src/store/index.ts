@@ -1,6 +1,8 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { useDispatch, useSelector, type TypedUseSelectorHook } from 'react-redux';
 import ingestionReducer from './ingestionSlice.ts';
+import filtersReducer from './filtersSlice.ts';
+import uiReducer from './uiSlice.ts';
 
 /**
  * Redux holds only small, serializable UI/status state (brief §2.1). The
@@ -14,8 +16,8 @@ import ingestionReducer from './ingestionSlice.ts';
 export const store = configureStore({
   reducer: {
     ingestion: ingestionReducer,
-    // filters: filtersReducer,  (Phase 2)
-    // ui: uiReducer,            (Phase 2)
+    filters: filtersReducer,
+    ui: uiReducer,
   },
   middleware: (getDefault) =>
     getDefault({
