@@ -1,0 +1,91 @@
+  … 51MB / 270MB
+  … 102MB / 270MB
+  … 153MB / 270MB
+  … 204MB / 270MB
+  … 255MB / 270MB
+# Phase 0 report — ../ui_demo.json
+Scanned 269.9MB of 269.9MB in 3.9s  |  peak RSS 118.6MB
+
+## Truncation
+FILE IS TRUNCATED. Scanner ended at depth 9 inside an image object.
+Partial trailing image discarded: group="1501-ci-cd" repo="app_fdcgrbes" image="R3.36.0" (0.5MB of unparsed tail)
+
+## Counts
+groups: 6   repos: 501   images: 756 (malformed: 0)
+occurrences: 171,711   unique CVEs: 1,228
+DEDUP RATIO: 139.8x  (occurrences per unique CVE)
+images missing 'vulnerabilities' key: 0   images with empty vulns: 0   groups without repos: 0
+max vulns in one image: 846   largest image object: 1.3MB
+
+## Redundancy
+raw description chars across all occurrences: 75.0MB (27.8% of file)
+raw link chars: 7.9MB
+deduped description chars (one per CVE): 0.5MB — saves 74.5MB
+
+## Severity (quirk I)
+  "medium": 93,111
+  "low": 44,589
+  "high": 33,021
+  "critical": 990
+
+## CVE catalog consistency (is dedup safe?)
+CVEs with conflicting cvss across occurrences: 55  e.g. CVE-2024-22243:[3.4,8.1] CVE-2023-20861:[5.3,6.5] CVE-2023-2976:[4.4,7.1]
+CVEs with conflicting severity across occurrences: 83  e.g. CVE-2024-22243:[medium,high] CVE-2016-1000027:[medium,critical] CVE-2023-2976:[medium,high]
+CVEs with differing description lengths: 0
+cvss range: 0–9.8   non-numeric cvss: 0
+high-CVSS(≥7) labeled low/medium: 227 unique CVEs (quirk C, scatter material)
+
+## Package types
+  "package": 102,002
+  "jar": 66,947
+  "python": 2,530
+  "app": 175
+  "nodejs": 57
+
+## Risk factors (quirk D)
+distinct labels: 13   non-empty value objects: 0
+  "Has fix": 140,493
+  "Attack vector: network": 127,354
+  "Attack complexity: low": 105,659
+  "Medium severity": 93,111
+  "DoS - High": 71,459
+  "DoS - Low": 33,178
+  "High severity": 33,021
+  "Package in use": 20,243
+  "Recent vulnerability": 17,037
+  "Remote execution": 9,416
+  "Exploit exists - POC": 8,062
+  "Exploit exists - in the wild": 1,946
+  "Critical severity": 990
+
+## Supposedly-empty fields (quirk H)
+  cause: ALWAYS empty ✓
+  vecStr: ALWAYS empty ✓
+  exploit: ALWAYS empty ✓
+  type: ALWAYS empty ✓
+  advisoryType: ALWAYS empty ✓
+  path: ALWAYS empty ✓
+
+## Vulnerability record keys
+union of keys seen: cve, severity, cvss, status, cause, description, vecStr, exploit, riskFactors, link, type, packageName, packageVersion, packageType, layerTime, published, fixDate, applicableRules, owner, advisoryType, path, kaiStatus
+unexpected keys: kaiStatus
+missing expected keys: none
+applicableRules non-array: 0
+
+## Dates (quirks F/G)
+  createTime: ok=756 badFormat=0 empty=0 epochZero=0 range=[2022-09-01 09:33:00 .. 2025-02-03 08:16:30]
+  published: ok=171,711 badFormat=0 empty=0 epochZero=0 range=[2015-01-09 02:59:11 .. 2025-01-29 22:15:28]
+  fixDate: ok=138,613 badFormat=0 empty=1,880 epochZero=31,218 range=[2015-05-05 18:55:55 .. 2025-01-22 21:12:37]
+  layerTime: ok=162,929 badFormat=0 empty=0 epochZero=8,782 range=[2019-07-22 14:14:38 .. 2025-02-03 08:16:33]
+
+## Other fields
+owner values: "system"(123,021) "user"(48,690)
+buildType values: "java"(555) "java,tomcat9"(172) "httpd,httpd24"(18) "nginx,rh-nginx116"(7) "python,python38,python-38,rh-python38"(4)
+distinct status strings: 798   e.g. "fixed in 6.1.6, 6.0.19, 5.3.34" "fixed in 6.1.5, 6.0.18, 5.3.33" "fixed in 6.1.4, 6.0.17, 5.3.32"
+
+## Top 5 CVEs by occurrence count
+  CVE-2023-2976: 1,787 occurrences (severity=medium, cvss=4.4)
+  CVE-2024-38820: 1,777 occurrences (severity=medium, cvss=5.3)
+  CVE-2023-20861: 1,302 occurrences (severity=medium, cvss=5.3)
+  CVE-2023-5384: 1,301 occurrences (severity=medium, cvss=2.7)
+  CVE-2020-8908: 1,187 occurrences (severity=low, cvss=3.3)
