@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.local
+.DS_Store
+
+# The 270MB scan file is never committed — see README for placement.
+public/ui_demo.json
