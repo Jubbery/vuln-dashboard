@@ -47,6 +47,17 @@ const uiSlice = createSlice({
       state.explorerScrollTop = action.payload;
     },
   },
+  extraReducers: (builder) => {
+    // Any filter change invalidates the current page and scroll position.
+    // Matcher (not per-action cases) so new filter reducers inherit this.
+    builder.addMatcher(
+      (action) => action.type.startsWith('filters/'),
+      (state) => {
+        state.page = 0;
+        state.explorerScrollTop = 0;
+      },
+    );
+  },
 });
 
 export const {
