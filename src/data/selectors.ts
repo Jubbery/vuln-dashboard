@@ -13,8 +13,8 @@
  *   'active' = not dismissed by Kai's triage, 'dismissed' = kaiStatus set.
  */
 
-import type { Dataset, Occurrence } from '../types/vulnerability.ts';
-import { SEVERITY_RANK } from '../types/vulnerability.ts';
+import type { Dataset, Occurrence, Severity } from '../types/vulnerability.ts';
+import { SEVERITY_RANK, SEVERITY_WEIGHT } from '../types/vulnerability.ts';
 import type { FiltersState } from '../store/filtersSlice.ts';
 import type { SortState } from '../store/uiSlice.ts';
 
@@ -90,4 +90,116 @@ export function sortOccurrences(rows: Occurrence[], sort: SortState, dataset: Da
 
 export function computeExplorerRows(dataset: Dataset, filters: FiltersState, sort: SortState): Occurrence[] {
   return sortOccurrences(filterOccurrences(dataset, filters), sort, dataset);
+}
+
+// ------------------------------------------------------------- hierarchy ---
+// Rolled-up counts for the drill-down pages. Single pass over the occurrence
+// array (20–50ms at 171k rows), memoized by the calling page with useMemo.
+
+export interface SeverityRollup {
+  counts: Record<Severity, number>;
+  total: number;
+  weightedScore: number;
+}
+
+const emptyRollup = (): SeverityRollup => ({
+  counts: { critical: 0, high: 0, medium: 0, low: 0, unknown: 0 },
+  total: 0,
+  weightedScore: 0,
+});
+
+function addTo(r: SeverityRollup, severity: Severity): void {
+  r.counts[severity]++;
+  r.total++;
+  r.weightedScore += SEVERITY_WEIGHT[severity];
+}
+
+/** Per-repo rollups within a group, ordered by weighted risk desc. */
+export function rollupReposInGroup(
+  dataset: Dataset,
+  groupId: number,
+): Array<{ repoId: number; imageCount: number } & SeverityRollup> {
+  // Seed from imageMeta, not occurrences, so a clean repo (zero findings)
+  // still appears in the drill-down instead of silently vanishing.
+  const byRepo = new Map<number, SeverityRollup>();
+  const imageCounts = new Map<number, number>();
+  for (const img of dataset.imageMeta) {
+    if (img.groupId === groupId) {
+      if (!byRepo.has(img.repoId)) byRepo.set(img.repoId, emptyRollup());
+      imageCounts.set(img.repoId, (imageCounts.get(img.repoId) ?? 0) + 1);
+    }
+  }
+  for (const o of dataset.occurrences) {
+    if (o.groupId !== groupId) continue;
+    let r = byRepo.get(o.repoId);
+    if (r === undefined) { r = emptyRollup(); byRepo.set(o.repoId, r); }
+    addTo(r, o.severity);
+  }
+  return [...byRepo.entries()]
+    .map(([repoId, r]) => ({ repoId, imageCount: imageCounts.get(repoId) ?? 0, ...r }))
+    .sort((a, b) => b.weightedScore - a.weightedScore);
+}
+
+/** Per-image rollups within a repo, ordered by weighted risk desc. */
+export function rollupImagesInRepo(
+  dataset: Dataset,
+  groupId: number,
+  repoId: number,
+): Array<{ imageId: number } & SeverityRollup> {
+  // Seeded from imageMeta for the same clean-image reason as above.
+  const byImage = new Map<number, SeverityRollup>();
+  for (const img of dataset.imageMeta) {
+    if (img.groupId === groupId && img.repoId === repoId) byImage.set(img.id, emptyRollup());
+  }
+  for (const o of dataset.occurrences) {
+    if (o.groupId !== groupId || o.repoId !== repoId) continue;
+    let r = byImage.get(o.imageId);
+    if (r === undefined) { r = emptyRollup(); byImage.set(o.imageId, r); }
+    addTo(r, o.severity);
+  }
+  return [...byImage.entries()]
+    .map(([imageId, r]) => ({ imageId, ...r }))
+    .sort((a, b) => b.weightedScore - a.weightedScore);
+}
+
+/** Every occurrence of one CVE across all images — the query the deduped
+ *  catalog makes cheap (single filtered pass; the top CVE has 1,787 rows). */
+export function occurrencesForCve(dataset: Dataset, cve: string): Occurrence[] {
+  return dataset.occurrences.filter((o) => o.cve === cve);
+}
+
+export interface PackageGroup {
+  key: string;             // "name@version"
+  packageName: string;
+  packageVersion: string;
+  packageType: string;
+  rows: Occurrence[];      // sorted most-severe-first
+  rollup: SeverityRollup;
+}
+
+/** An image's vulnerabilities grouped by package, riskiest package first. */
+export function packagesForImage(dataset: Dataset, imageId: number): PackageGroup[] {
+  const byPkg = new Map<string, PackageGroup>();
+  for (const o of dataset.occurrences) {
+    if (o.imageId !== imageId) continue;
+    const key = `${o.packageName}@${o.packageVersion}`;
+    let g = byPkg.get(key);
+    if (g === undefined) {
+      g = {
+        key,
+        packageName: o.packageName,
+        packageVersion: o.packageVersion,
+        packageType: o.packageType,
+        rows: [],
+        rollup: emptyRollup(),
+      };
+      byPkg.set(key, g);
+    }
+    g.rows.push(o);
+    addTo(g.rollup, o.severity);
+  }
+  for (const g of byPkg.values()) {
+    g.rows.sort((a, b) => SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]);
+  }
+  return [...byPkg.values()].sort((a, b) => b.rollup.weightedScore - a.rollup.weightedScore);
 }
