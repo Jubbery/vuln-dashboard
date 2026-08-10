@@ -19,7 +19,7 @@ function GateFrame({ children }: { children: ReactNode }): ReactNode {
   return (
     <Box sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center', bgcolor: 'background.default' }}>
       <Paper sx={{ width: 'min(560px, 92vw)', p: 2 }}>
-        <Typography variant="h3" sx={{ px: 2, pt: 1.5 }}>Vulnerability Dashboard</Typography>
+        <Typography variant="h3" component="h1" sx={{ px: 2, pt: 1.5 }}>Vulnerability Dashboard</Typography>
         {children}
       </Paper>
     </Box>

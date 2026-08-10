@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
@@ -60,6 +60,13 @@ export function SeverityDonut({ bySeverity, width, height }: SeverityDonutProps)
     dispatch(severitiesSet([s]));
     void navigate('/explorer');
   };
+  /** Enter/Space activate like a button (Phase 6 keyboard nav). */
+  const keyActivate = (s: Severity) => (e: KeyboardEvent): void => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      goExplore(s);
+    }
+  };
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, height: '100%' }}>
@@ -78,8 +85,11 @@ export function SeverityDonut({ bySeverity, width, height }: SeverityDonutProps)
                 fill={theme.palette.severity[a.data.severity]}
                 opacity={hovered === null || hovered === a.data.severity ? 1 : 0.45}
                 cursor="pointer"
+                role="button"
+                tabIndex={0}
                 aria-label={`${SEVERITY_LABEL[a.data.severity]}: ${formatNumber(a.data.count)} — filter Explorer`}
                 onClick={() => { goExplore(a.data.severity); }}
+                onKeyDown={keyActivate(a.data.severity)}
                 onMouseMove={(e) => {
                   setHovered(a.data.severity);
                   show(e, (
@@ -110,7 +120,11 @@ export function SeverityDonut({ bySeverity, width, height }: SeverityDonutProps)
             direction="row"
             spacing={1}
             alignItems="center"
+            role="button"
+            tabIndex={0}
+            aria-label={`${SEVERITY_LABEL[d.severity]}: ${formatNumber(d.count)} — filter Explorer`}
             onClick={() => { goExplore(d.severity); }}
+            onKeyDown={keyActivate(d.severity)}
             sx={{ cursor: 'pointer', '&:hover': { opacity: 0.8 } }}
           >
             <Box sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: theme.palette.severity[d.severity], flexShrink: 0 }} />

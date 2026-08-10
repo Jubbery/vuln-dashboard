@@ -20,6 +20,29 @@ export function DashboardLayout(): ReactNode {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      {/* Keyboard users skip the sidebar's group list (Phase 6 a11y). */}
+      <Box
+        component="a"
+        href="#main-content"
+        sx={{
+          position: 'absolute',
+          left: -9999,
+          zIndex: (t) => t.zIndex.tooltip,
+          '&:focus-visible': {
+            left: 12,
+            top: 10,
+            px: 2,
+            py: 0.75,
+            bgcolor: 'primary.main',
+            color: '#0e1218',
+            borderRadius: 1,
+            fontWeight: 600,
+            textDecoration: 'none',
+          },
+        }}
+      >
+        Skip to content
+      </Box>
       <Sidebar
         variant={isDesktop ? 'permanent' : 'temporary'}
         open={sidebarOpen}
@@ -27,7 +50,7 @@ export function DashboardLayout(): ReactNode {
       />
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <Header showMenuButton={!isDesktop} onMenuClick={() => dispatch(sidebarToggled())} />
-        <Box component="main" sx={{ flex: 1, p: { xs: 2, md: 3 }, minWidth: 0 }}>
+        <Box component="main" id="main-content" tabIndex={-1} sx={{ flex: 1, p: { xs: 2, md: 3 }, minWidth: 0, outline: 'none' }}>
           <Outlet />
         </Box>
       </Box>

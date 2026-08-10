@@ -86,6 +86,13 @@ function buildColumns(dataset: Dataset): GridColDef<Occurrence>[] {
 /** Fields the selector layer knows how to sort (data/selectors.ts). */
 const SORTABLE = new Set(['severity', 'cvss', 'cve', 'packageName', 'packageType', 'fixDate', 'image']);
 
+/** Module-level so the slot's component identity is stable across renders —
+ *  an inline closure would remount the overlay on every filter change. */
+function NoRowsOverlay(): ReactNode {
+  return <EmptyState title="No matching occurrences" description="Try removing a filter." />;
+}
+const GRID_SLOTS = { noRowsOverlay: NoRowsOverlay };
+
 export function OccurrenceGrid({ rows }: { rows: Occurrence[] }): ReactNode {
   const dataset = useDataset();
   const dispatch = useAppDispatch();
@@ -146,11 +153,7 @@ export function OccurrenceGrid({ rows }: { rows: Occurrence[] }): ReactNode {
         }}
         pageSizeOptions={[25, 50, 100]}
         onRowClick={(p) => { void navigate(`/cve/${(p.row as Occurrence).cve}`); }}
-        slots={{
-          noRowsOverlay: () => (
-            <EmptyState title="No matching occurrences" description="Try removing a filter." />
-          ),
-        }}
+        slots={GRID_SLOTS}
         sx={{
           border: 1,
           borderColor: 'divider',

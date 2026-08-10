@@ -120,7 +120,9 @@ export function SeverityVsCvssScatter({ severityVsCvss, width, height }: Severit
             </text>
           ))}
 
-          {/* points */}
+          {/* points — deliberately NOT individual tab stops: ~1,200 of them
+              would trap keyboard users. The svg aria-label summarizes the
+              finding; every CVE is keyboard-reachable through the Explorer. */}
           {severityVsCvss.map((d) => {
             const bandY = y(d.severity);
             if (bandY === undefined) return null;

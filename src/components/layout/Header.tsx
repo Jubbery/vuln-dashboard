@@ -30,7 +30,8 @@ export function Header({ showMenuButton, onMenuClick }: HeaderProps): ReactNode 
         <Box sx={{ flex: 1 }} />
         {diagnostics.truncated && (
           <Tooltip title={`Source file is truncated: one partial record (${formatBytes(diagnostics.unparsedTailBytes)}, ${diagnostics.partialTailPath ?? 'unknown'}) was discarded during ingestion.`}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'severity.medium' }}>
+            {/* tabIndex so keyboard users can reach the tooltip too */}
+            <Box tabIndex={0} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: 'severity.medium' }}>
               <WarningAmberIcon sx={{ fontSize: 18 }} />
               <Typography variant="caption" sx={{ display: { xs: 'none', lg: 'inline' } }}>
                 truncated source

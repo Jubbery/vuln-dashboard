@@ -17,7 +17,7 @@ import Button from '@mui/material/Button';
 import Chip from '@mui/material/Chip';
 import SearchIcon from '@mui/icons-material/Search';
 import { alpha, useTheme } from '@mui/material/styles';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Severity } from '../../types/vulnerability.ts';
 import { SEVERITY_ORDER, SEVERITY_LABEL, ACTIONABLE_RISK_FACTORS } from '../../theme/severity.ts';
 import { useDataset } from '../../data/useDataset.ts';
@@ -84,12 +84,20 @@ export function FilterPanel(): ReactNode {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.search]);
 
-  const riskFactorOptions = Object.keys(dataset.aggregates.byRiskFactor).sort((a, b) => {
-    const aAct = ACTIONABLE_RISK_FACTORS.has(a) ? 0 : 1;
-    const bAct = ACTIONABLE_RISK_FACTORS.has(b) ? 0 : 1;
-    return aAct - bAct || a.localeCompare(b);
-  });
-  const packageTypeOptions = Object.keys(dataset.aggregates.byPackageType).sort();
+  // Memoized: this component re-renders on every search keystroke, and
+  // re-sorting the option lists each time is pointless work (Phase 6 profiling).
+  const riskFactorOptions = useMemo(
+    () => Object.keys(dataset.aggregates.byRiskFactor).sort((a, b) => {
+      const aAct = ACTIONABLE_RISK_FACTORS.has(a) ? 0 : 1;
+      const bAct = ACTIONABLE_RISK_FACTORS.has(b) ? 0 : 1;
+      return aAct - bAct || a.localeCompare(b);
+    }),
+    [dataset],
+  );
+  const packageTypeOptions = useMemo(
+    () => Object.keys(dataset.aggregates.byPackageType).sort(),
+    [dataset],
+  );
 
   const activeCount =
     filters.severities.length + filters.riskFactors.length + filters.packageTypes.length +

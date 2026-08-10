@@ -69,9 +69,18 @@ export function RiskFactorBar({ byRiskFactor, totalOccurrences, width, height }:
                 key={r.label}
                 transform={`translate(0,${yPos})`}
                 cursor="pointer"
+                role="button"
+                tabIndex={0}
                 onClick={() => {
                   dispatch(riskFactorsSet([r.label]));
                   void navigate('/explorer');
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    dispatch(riskFactorsSet([r.label]));
+                    void navigate('/explorer');
+                  }
                 }}
                 onMouseMove={(e) => {
                   show(e, (

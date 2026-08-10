@@ -38,6 +38,22 @@ export const theme = createTheme({
   },
   shape: { borderRadius: 10 },
   components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        // Visible keyboard focus everywhere (Phase 6 a11y). ButtonBase resets
+        // outline to 0, so it needs its own selector at equal specificity
+        // declared here (CssBaseline styles win via insertion order for SVG
+        // elements; the class selector wins for MUI components).
+        ':focus-visible': {
+          outline: '2px solid #4f8ef7',
+          outlineOffset: '2px',
+        },
+        '.MuiButtonBase-root:focus-visible': {
+          outline: '2px solid #4f8ef7',
+          outlineOffset: '-2px',
+        },
+      },
+    },
     MuiPaper: {
       styleOverrides: {
         root: {

@@ -82,7 +82,15 @@ export function TopRiskImagesBar({ topRiskImages, dataset, width, height }: TopR
                 key={r.imageId}
                 transform={`translate(0,${yPos})`}
                 cursor="pointer"
+                role="button"
+                tabIndex={0}
                 onClick={() => { void navigate(`/images/${r.imageId}`); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    void navigate(`/images/${r.imageId}`);
+                  }
+                }}
                 onMouseMove={(e) => { show(e, tooltip); }}
                 onMouseLeave={hide}
                 aria-label={`${repoName} ${img.version}, weighted score ${Math.round(r.weightedScore)} — open image`}
