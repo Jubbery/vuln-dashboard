@@ -20,5 +20,5 @@
     "verbatimModuleSyntax": true,
     "skipLibCheck": true
   },
-  "include": ["src", "scripts/run-ingest-node.ts"]
+  "include": ["src"]
 }

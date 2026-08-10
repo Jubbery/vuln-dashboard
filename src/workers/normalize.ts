@@ -45,7 +45,10 @@ export function parseScanDate(v: unknown): number | null {
   if (typeof v !== 'string' || v === '' || v === EPOCH_ZERO) return null;
   const m = DATE_RE.exec(v);
   if (!m) return null;
-  return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]);
+  // Six capture groups are guaranteed by the anchored regex; the destructure
+  // defaults satisfy noUncheckedIndexedAccess without non-null assertions.
+  const [, y = '', mo = '', d = '', h = '', mi = '', s = ''] = m;
+  return Date.UTC(+y, +mo - 1, +d, +h, +mi, +s);
 }
 
 // ------------------------------------------------------------ risk factors ---
