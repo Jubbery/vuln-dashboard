@@ -44,6 +44,23 @@ To point at a remotely hosted copy instead of `public/`, set `VITE_DATA_URL`:
 VITE_DATA_URL=https://example.com/ui_demo.json npm run dev
 ```
 
+### The deployed demo runs on a sample — and why
+
+The full scan is 270MB, which exceeds free-tier hosting limits (~100MB) and is
+too large to commit. The deployment therefore serves
+`public/ui_demo.sample.json` — whole groups taken from the source file, so the
+nested schema is identical and **the ingest path is byte-for-byte the same**:
+same streaming tokenizer, same normalizer, same aggregation, same worker. Only
+the row count differs.
+
+```bash
+npm run make-sample -- /path/to/ui_demo.json          # writes public/ui_demo.sample.json (~45MB)
+npm run build                                          # .env.production points at the sample
+```
+
+All performance numbers in this README were measured against the **full 270MB
+file** locally, not the sample.
+
 Other scripts:
 
 ```bash

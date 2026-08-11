@@ -13,6 +13,11 @@ import type { WorkerRequest, WorkerResponse } from '../types/worker.ts';
 import { useAppDispatch } from '../store/index.ts';
 import { ingestStarted, ingestProgress, ingestReady, ingestFailed } from '../store/ingestionSlice.ts';
 
+/**
+ * Local dev reads the full 270MB file from public/. Deployed builds set
+ * VITE_DATA_URL to the committed sample (the full file exceeds free-tier
+ * hosting limits) — the ingest path is byte-for-byte identical either way.
+ */
 const DATA_URL: string = import.meta.env.VITE_DATA_URL ?? '/ui_demo.json';
 
 /** Module-level singleton. Never mutated after DONE. */

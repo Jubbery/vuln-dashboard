@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:ui": "vitest --ui",
     "typecheck": "tsc --noEmit",
+    "make-sample": "node scripts/make-sample.mjs",
     "inspect-data": "node scripts/inspect-data.mjs",
     "ingest-node": "node --experimental-strip-types scripts/run-ingest-node.ts"
   },
