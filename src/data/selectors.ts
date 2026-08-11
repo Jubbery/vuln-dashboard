@@ -9,16 +9,33 @@
  * - Has-fix filter is record-level truth: fixDate !== null. (Phase 0: 1,880
  *   records carry the "Has fix" label with an empty fixDate — the label is
  *   CVE-level, the date is occurrence-level.)
- * - Triage filter uses the kaiStatus field discovered in Phase 0:
- *   'active' = not dismissed by Kai's triage, 'dismissed' = kaiStatus set.
+ * - Triage exclusion uses the kaiStatus field discovered in Phase 0: the
+ *   Analysis / AI Analysis action buttons each hide one dismissal verdict
+ *   ("invalid - norisk" / "ai-invalid-norisk").
  */
 
 import type { Dataset, Occurrence, Severity } from '../types/vulnerability.ts';
 import { SEVERITY_RANK, SEVERITY_WEIGHT } from '../types/vulnerability.ts';
 import type { FiltersState } from '../store/filtersSlice.ts';
+import { KAI_MANUAL_INVALID, KAI_AI_INVALID } from '../store/filtersSlice.ts';
 import type { SortState } from '../store/uiSlice.ts';
 
+/** Rows passing every filter, plus the triage tallies the action buttons and
+ *  impact bar need — counted WITHIN the current filter context, so "Analysis
+ *  removes N" stays truthful when other filters are active. */
+export interface FilterResult {
+  rows: Occurrence[];
+  /** Records matching all other filters that are manual-analysis dismissals. */
+  manualDismissed: number;
+  /** Records matching all other filters that are AI-analysis dismissals. */
+  aiDismissed: number;
+}
+
 export function filterOccurrences(dataset: Dataset, f: FiltersState): Occurrence[] {
+  return filterOccurrencesDetailed(dataset, f).rows;
+}
+
+export function filterOccurrencesDetailed(dataset: Dataset, f: FiltersState): FilterResult {
   const severities = f.severities.length > 0 ? new Set(f.severities) : null;
   const packageTypes = f.packageTypes.length > 0 ? new Set(f.packageTypes) : null;
   const riskFactors = f.riskFactors.length > 0 ? f.riskFactors : null;
@@ -35,22 +52,31 @@ export function filterOccurrences(dataset: Dataset, f: FiltersState): Occurrence
   }
 
   const out: Occurrence[] = [];
+  let manualDismissed = 0;
+  let aiDismissed = 0;
   for (const o of dataset.occurrences) {
     if (f.groupId !== null && o.groupId !== f.groupId) continue;
     if (f.repoId !== null && o.repoId !== f.repoId) continue;
     if (severities !== null && !severities.has(o.severity)) continue;
     if (packageTypes !== null && !packageTypes.has(o.packageType)) continue;
-    if (f.triage === 'active' && o.kaiStatus !== null) continue;
-    if (f.triage === 'dismissed' && o.kaiStatus === null) continue;
     if (f.fix === 'with-fix' && o.fixDate === null) continue;
     if (f.fix === 'without-fix' && o.fixDate !== null) continue;
     if (rfCves !== null && !rfCves.has(o.cve)) continue;
     if (search !== '' &&
       !o.cve.toLowerCase().includes(search) &&
       !o.packageName.toLowerCase().includes(search)) continue;
+    // Triage tallies are counted before exclusion so the action buttons can
+    // report their impact whether or not they're engaged.
+    if (o.kaiStatus === KAI_MANUAL_INVALID) {
+      manualDismissed++;
+      if (f.analysisOn) continue;
+    } else if (o.kaiStatus === KAI_AI_INVALID) {
+      aiDismissed++;
+      if (f.aiAnalysisOn) continue;
+    }
     out.push(o);
   }
-  return out;
+  return { rows: out, manualDismissed, aiDismissed };
 }
 
 /**
@@ -90,6 +116,16 @@ export function sortOccurrences(rows: Occurrence[], sort: SortState, dataset: Da
 
 export function computeExplorerRows(dataset: Dataset, filters: FiltersState, sort: SortState): Occurrence[] {
   return sortOccurrences(filterOccurrences(dataset, filters), sort, dataset);
+}
+
+export interface ExplorerResult extends FilterResult {
+  rows: Occurrence[];   // filtered AND sorted
+}
+
+/** Explorer's one expensive computation: filter (with triage tallies) → sort. */
+export function computeExplorerResult(dataset: Dataset, filters: FiltersState, sort: SortState): ExplorerResult {
+  const r = filterOccurrencesDetailed(dataset, filters);
+  return { ...r, rows: sortOccurrences(r.rows, sort, dataset) };
 }
 
 // ------------------------------------------------------------- hierarchy ---

@@ -68,7 +68,9 @@ function buildColumns(dataset: Dataset): GridColDef<Occurrence>[] {
         p.row.kaiStatus === null ? (
           <Typography variant="caption" color="text.secondary">—</Typography>
         ) : (
-          <Chip size="small" variant="outlined" label="dismissed" title={p.row.kaiStatus} />
+          <Chip size="small" variant="outlined"
+            label={p.row.kaiStatus.startsWith('ai-') ? 'AI dismissed' : 'dismissed'}
+            title={p.row.kaiStatus} />
         ),
     },
   ];

@@ -8,8 +8,9 @@ import { useTheme } from '@mui/material/styles';
 import { useMemo, useState, type ReactNode } from 'react';
 import { useDataset } from '../data/useDataset.ts';
 import { useAppSelector } from '../store/index.ts';
-import { computeExplorerRows } from '../data/selectors.ts';
+import { computeExplorerResult } from '../data/selectors.ts';
 import { FilterPanel } from '../components/explorer/FilterPanel.tsx';
+import { AnalysisActions } from '../components/explorer/AnalysisActions.tsx';
 import { OccurrenceGrid } from '../components/explorer/OccurrenceGrid.tsx';
 import { formatNumber } from '../utils/format.ts';
 
@@ -25,8 +26,8 @@ export default function ExplorerPage(): ReactNode {
 
   // The one expensive computation on this page — memoized on exactly the
   // inputs that can change it. Runs in ~10–40ms over 171k rows.
-  const rows = useMemo(
-    () => computeExplorerRows(dataset, filters, sort),
+  const { rows, manualDismissed, aiDismissed } = useMemo(
+    () => computeExplorerResult(dataset, filters, sort),
     [dataset, filters, sort],
   );
 
@@ -49,10 +50,15 @@ export default function ExplorerPage(): ReactNode {
     </Box>
   );
 
+  const actions = (
+    <AnalysisActions manualDismissed={manualDismissed} aiDismissed={aiDismissed} visible={rows.length} />
+  );
+
   if (!wide) {
     return (
       <Box>
         {header}
+        {actions}
         <Collapse in={panelOpen}>
           <Box sx={{ mb: 2 }}><FilterPanel /></Box>
         </Collapse>
@@ -69,6 +75,7 @@ export default function ExplorerPage(): ReactNode {
           <FilterPanel />
         </Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
+          {actions}
           <OccurrenceGrid rows={rows} />
         </Box>
       </Box>

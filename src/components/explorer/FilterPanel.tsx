@@ -24,7 +24,7 @@ import { useDataset } from '../../data/useDataset.ts';
 import { useAppDispatch, useAppSelector } from '../../store/index.ts';
 import {
   severitiesSet, riskFactorsSet, packageTypesSet, groupSet, searchSet,
-  fixSet, triageSet, filtersCleared, type FixFilter, type TriageFilter,
+  fixSet, filtersCleared, type FixFilter,
 } from '../../store/filtersSlice.ts';
 import { formatNumber } from '../../utils/format.ts';
 
@@ -102,7 +102,8 @@ export function FilterPanel(): ReactNode {
   const activeCount =
     filters.severities.length + filters.riskFactors.length + filters.packageTypes.length +
     (filters.groupId !== null ? 1 : 0) + (filters.search !== '' ? 1 : 0) +
-    (filters.fix !== 'all' ? 1 : 0) + (filters.triage !== 'all' ? 1 : 0);
+    (filters.fix !== 'all' ? 1 : 0) +
+    (filters.analysisOn ? 1 : 0) + (filters.aiAnalysisOn ? 1 : 0);
 
   return (
     <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -218,25 +219,10 @@ export function FilterPanel(): ReactNode {
         </ToggleButtonGroup>
       </Box>
 
-      <Box>
-        <Typography variant="caption" component="div" sx={{ mb: 0.75 }}>
-          Kai triage
-        </Typography>
-        <ToggleButtonGroup
-          exclusive
-          size="small"
-          fullWidth
-          value={filters.triage}
-          onChange={(_, v: TriageFilter | null) => { if (v !== null) dispatch(triageSet(v)); }}
-        >
-          <ToggleButton value="all">All</ToggleButton>
-          <ToggleButton value="active">Active</ToggleButton>
-          <ToggleButton value="dismissed">Dismissed</ToggleButton>
-        </ToggleButtonGroup>
-        <Typography variant="caption" sx={{ mt: 0.5, display: 'block', opacity: 0.7 }}>
-          ~12% of records are dismissed by scanner triage (kaiStatus)
-        </Typography>
-      </Box>
+      <Typography variant="caption" sx={{ opacity: 0.7 }}>
+        Triage exclusions live in the Analysis / AI Analysis buttons above the
+        table — ~12% of records carry a kaiStatus dismissal.
+      </Typography>
     </Paper>
   );
 }

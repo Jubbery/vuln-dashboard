@@ -8,8 +8,11 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { Severity } from '../types/vulnerability.ts';
 
 export type FixFilter = 'all' | 'with-fix' | 'without-fix';
-/** Phase 0 discovery: kaiStatus triage verdicts. 'active' = not dismissed. */
-export type TriageFilter = 'all' | 'active' | 'dismissed';
+
+/** The two kaiStatus triage verdicts present in the data (Phase 0 + email
+ *  spec): manual analysis dismissals and AI analysis dismissals. */
+export const KAI_MANUAL_INVALID = 'invalid - norisk';
+export const KAI_AI_INVALID = 'ai-invalid-norisk';
 
 export interface FiltersState {
   severities: Severity[];        // empty = all
@@ -19,7 +22,10 @@ export interface FiltersState {
   repoId: number | null;
   search: string;                // matches CVE id and package name (debounced upstream)
   fix: FixFilter;
-  triage: TriageFilter;
+  /** "Analysis" action button: hide records dismissed by manual analysis. */
+  analysisOn: boolean;
+  /** "AI Analysis" action button: hide records dismissed by AI analysis. */
+  aiAnalysisOn: boolean;
 }
 
 const initialState: FiltersState = {
@@ -30,7 +36,8 @@ const initialState: FiltersState = {
   repoId: null,
   search: '',
   fix: 'all',
-  triage: 'all',
+  analysisOn: false,
+  aiAnalysisOn: false,
 };
 
 const filtersSlice = createSlice({
@@ -59,8 +66,11 @@ const filtersSlice = createSlice({
     fixSet(state, action: PayloadAction<FixFilter>) {
       state.fix = action.payload;
     },
-    triageSet(state, action: PayloadAction<TriageFilter>) {
-      state.triage = action.payload;
+    analysisToggled(state) {
+      state.analysisOn = !state.analysisOn;
+    },
+    aiAnalysisToggled(state) {
+      state.aiAnalysisOn = !state.aiAnalysisOn;
     },
     filtersCleared() {
       return initialState;
@@ -70,6 +80,6 @@ const filtersSlice = createSlice({
 
 export const {
   severitiesSet, riskFactorsSet, packageTypesSet, groupSet, repoSet,
-  searchSet, fixSet, triageSet, filtersCleared,
+  searchSet, fixSet, analysisToggled, aiAnalysisToggled, filtersCleared,
 } = filtersSlice.actions;
 export default filtersSlice.reducer;
