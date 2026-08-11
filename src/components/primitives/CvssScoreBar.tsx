@@ -14,17 +14,19 @@ export interface CvssScoreBarProps {
 export function CvssScoreBar({ score, width = 64, showValue = true }: CvssScoreBarProps): ReactNode {
   const theme = useTheme();
   const clamped = Math.max(0, Math.min(10, score));
-  const color = cvssColor(clamped, theme.palette.severity);
+  // Fill token for the meter, text-safe token for the number.
+  const barColor = cvssColor(clamped, theme.palette.severityFill);
+  const textColor = cvssColor(clamped, theme.palette.severity);
   return (
     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}
       aria-label={`CVSS score ${clamped.toFixed(1)} of 10`}>
-      <Box sx={{ width, height: 6, borderRadius: 3, backgroundColor: alpha(color, 0.15) }}>
+      <Box sx={{ width, height: 6, borderRadius: 3, backgroundColor: alpha(barColor, 0.15) }}>
         <Box sx={{
-          width: `${clamped * 10}%`, height: '100%', borderRadius: 3, backgroundColor: color,
+          width: `${clamped * 10}%`, height: '100%', borderRadius: 3, backgroundColor: barColor,
         }} />
       </Box>
       {showValue && (
-        <Typography variant="body2" sx={{ color, fontVariantNumeric: 'tabular-nums', minWidth: 28 }}>
+        <Typography variant="body2" sx={{ color: textColor, fontVariantNumeric: 'tabular-nums', minWidth: 28 }}>
           {clamped.toFixed(1)}
         </Typography>
       )}

@@ -17,13 +17,28 @@ export const SEVERITY_COLOR: Record<Severity, string> = {
 
 /** Light ("enterprise") theme variant — same hue relationships, darkened so
  *  every value holds ≥5.2:1 on white and the #f4f5f7 canvas (verified
- *  programmatically, worst case 5.27:1). */
+ *  programmatically, worst case 5.27:1). These are the TEXT-safe tokens:
+ *  chips, labels, colored numbers. */
 export const SEVERITY_COLOR_LIGHT: Record<Severity, string> = {
   critical: '#b1231b',
   high: '#a34d00',
   medium: '#7a6400',
   low: '#0057b8',
   unknown: '#5c626b',
+};
+
+/** Light-mode FILL tokens for chart areas (donut slices, stacked segments,
+ *  scatter points). Text-safe colors darken until reds/browns/olives smear
+ *  together as large fills — fills instead stay vivid and hue-separated
+ *  (red → orange → gold → blue, the same temperature ramp as dark mode) and
+ *  lean on hairline strokes for edge definition. In dark mode one set serves
+ *  both roles, so `severityFill === severity` there. */
+export const SEVERITY_FILL_LIGHT: Record<Severity, string> = {
+  critical: '#d7263d',   // hue 352, lum .162 — crimson, darkest of the warm ramp
+  high: '#ee7511',       // hue 27,  lum .309
+  medium: '#f2bc1b',     // hue 45,  lum .549 — every adjacent warm pair ≥1.67:1 apart
+  low: '#3186de',        // hue 211 — hue-isolated from the warm ramp
+  unknown: '#8a8d90',
 };
 
 export const SEVERITY_LABEL: Record<Severity, string> = {

@@ -82,7 +82,7 @@ export function SeverityDonut({ bySeverity, width, height }: SeverityDonutProps)
               <path
                 key={a.data.severity}
                 d={arcPath(a) ?? ''}
-                fill={theme.palette.severity[a.data.severity]}
+                fill={theme.palette.severityFill[a.data.severity]}
                 opacity={hovered === null || hovered === a.data.severity ? 1 : 0.45}
                 cursor="pointer"
                 role="button"
@@ -127,7 +127,7 @@ export function SeverityDonut({ bySeverity, width, height }: SeverityDonutProps)
             onKeyDown={keyActivate(d.severity)}
             sx={{ cursor: 'pointer', '&:hover': { opacity: 0.8 } }}
           >
-            <Box sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: theme.palette.severity[d.severity], flexShrink: 0 }} />
+            <Box sx={{ width: 10, height: 10, borderRadius: '3px', bgcolor: theme.palette.severityFill[d.severity], flexShrink: 0 }} />
             <Typography variant="body2" noWrap>{SEVERITY_LABEL[d.severity]}</Typography>
             <Typography variant="caption" sx={{ fontVariantNumeric: 'tabular-nums' }}>
               {formatNumber(d.count)}

@@ -1,16 +1,20 @@
 import { createTheme, type Theme } from '@mui/material/styles';
 import type { Severity } from '../types/vulnerability.ts';
-import { SEVERITY_COLOR, SEVERITY_COLOR_LIGHT } from './severity.ts';
+import { SEVERITY_COLOR, SEVERITY_COLOR_LIGHT, SEVERITY_FILL_LIGHT } from './severity.ts';
 
-/** Severity palette lives on the theme (§7.1) — charts and primitives read
- *  from here, never from hardcoded hex. That discipline is what makes the
- *  second theme below ~60 lines instead of a rewrite. */
+/** Severity palettes live on the theme (§7.1) — charts and primitives read
+ *  from here, never from hardcoded hex. Two token sets: `severity` is
+ *  text-safe (chips, labels, colored numbers); `severityFill` is for chart
+ *  areas, where light mode needs vivid, hue-separated colors instead of the
+ *  contrast-darkened ones. Dark mode uses one set for both. */
 declare module '@mui/material/styles' {
   interface Palette {
     severity: Record<Severity, string>;
+    severityFill: Record<Severity, string>;
   }
   interface PaletteOptions {
     severity?: Record<Severity, string>;
+    severityFill?: Record<Severity, string>;
   }
 }
 
@@ -45,6 +49,7 @@ function darkTheme(): Theme {
       divider: '#232c38',
       text: { primary: '#dbe2ea', secondary: '#8b97a5' },
       severity: SEVERITY_COLOR,
+      severityFill: SEVERITY_COLOR,
     },
     typography: { ...shared.typography, caption: { color: '#8b97a5' } },
     components: {
@@ -79,6 +84,7 @@ function lightTheme(): Theme {
       divider: '#d5d9de',
       text: { primary: '#151515', secondary: '#5c626b' },
       severity: SEVERITY_COLOR_LIGHT,
+      severityFill: SEVERITY_FILL_LIGHT,
     },
     typography: { ...shared.typography, caption: { color: '#5c626b' } },
     components: {

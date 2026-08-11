@@ -155,7 +155,7 @@ export function AnalysisActions({ manualDismissed, aiDismissed, visible }: Analy
             }}
           >
             <Box sx={{ width: pct(visible), bgcolor: alpha(theme.palette.text.primary, 0.55), transition: 'width 400ms ease' }} />
-            <Box sx={{ width: pct(removedManual), bgcolor: alpha(manualAccent, 0.75), transition: 'width 400ms ease' }} />
+            <Box sx={{ width: pct(removedManual), bgcolor: alpha(theme.palette.severityFill.medium, 0.9), transition: 'width 400ms ease' }} />
             <Box sx={{ width: pct(removedAi), bgcolor: alpha(aiAccent, 0.75), transition: 'width 400ms ease' }} />
           </Box>
         </Tooltip>

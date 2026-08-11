@@ -96,7 +96,9 @@ export function PublishedTrendChart({ publishedTrend, width, height }: Published
                       y={yCursor}
                       width={x.bandwidth()}
                       height={h}
-                      fill={theme.palette.severity[s]}
+                      fill={theme.palette.severityFill[s]}
+                      stroke={theme.palette.background.paper}
+                      strokeWidth={1}
                     />
                   );
                 })}

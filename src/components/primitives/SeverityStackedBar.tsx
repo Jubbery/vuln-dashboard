@@ -27,14 +27,16 @@ export function SeverityStackedBar({ counts, height = 8 }: SeverityStackedBarPro
       <Box
         role="img"
         aria-label={`Severity composition — ${label}`}
-        sx={{ display: 'flex', height, borderRadius: height / 2, overflow: 'hidden', width: '100%' }}
+        // 1px gap lets the surface show through as a hairline divider, so
+        // adjacent severities stay divided in both themes.
+        sx={{ display: 'flex', gap: '1px', height, borderRadius: height / 2, overflow: 'hidden', width: '100%' }}
       >
         {SEVERITY_ORDER.filter((s) => counts[s] > 0).map((s) => (
           <Box
             key={s}
             sx={{
               width: `${(counts[s] / total) * 100}%`,
-              backgroundColor: theme.palette.severity[s],
+              backgroundColor: theme.palette.severityFill[s],
               minWidth: 2,
             }}
           />

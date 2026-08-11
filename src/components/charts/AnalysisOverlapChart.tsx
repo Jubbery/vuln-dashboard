@@ -96,7 +96,7 @@ export function AnalysisOverlapChart({ analysisOverlap }: AnalysisOverlapChartPr
                       width: `${(mPct / maxRate) * 100}%`,
                       height: 10,
                       borderRadius: '5px 0 0 5px',
-                      backgroundColor: alpha(manualAccent, 0.8),
+                      backgroundColor: alpha(theme.palette.severityFill.medium, 0.9),
                       minWidth: mPct > 0 ? 2 : 0,
                     }} />
                   </Box>

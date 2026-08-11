@@ -117,7 +117,9 @@ export function TopRiskImagesBar({ topRiskImages, dataset, width, height }: TopR
                       width={Math.max(w, 1)}
                       height={y.bandwidth()}
                       rx={2}
-                      fill={theme.palette.severity[s]}
+                      fill={theme.palette.severityFill[s]}
+                      stroke={theme.palette.background.paper}
+                      strokeWidth={1}
                     />
                   );
                   xCursor += w;

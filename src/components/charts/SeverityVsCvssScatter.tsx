@@ -79,8 +79,8 @@ export function SeverityVsCvssScatter({ severityVsCvss, width, height }: Severit
               y={y(s) ?? 0}
               width={x(10) - x(HIGH_CVSS)}
               height={y.bandwidth()}
-              fill={alpha(theme.palette.severity.critical, 0.07)}
-              stroke={alpha(theme.palette.severity.critical, 0.25)}
+              fill={alpha(theme.palette.severityFill.critical, 0.07)}
+              stroke={alpha(theme.palette.severityFill.critical, 0.25)}
               strokeDasharray="3 3"
             />
           ))}
@@ -134,9 +134,9 @@ export function SeverityVsCvssScatter({ severityVsCvss, width, height }: Severit
                 cx={x(d.cvss)}
                 cy={cy}
                 r={isUnderstated ? 3.5 : 2.5}
-                fill={theme.palette.severity[d.severity]}
+                fill={theme.palette.severityFill[d.severity]}
                 fillOpacity={isUnderstated ? 0.95 : 0.45}
-                stroke={isUnderstated ? theme.palette.severity.critical : 'none'}
+                stroke={isUnderstated ? theme.palette.severityFill.critical : 'none'}
                 strokeWidth={isUnderstated ? 1 : 0}
                 cursor="pointer"
                 onClick={() => { void navigate(`/cve/${d.cve}`); }}

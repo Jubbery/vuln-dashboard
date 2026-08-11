@@ -62,7 +62,7 @@ export function RiskFactorBar({ byRiskFactor, totalOccurrences, width, height }:
         <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
           {rows.map((r) => {
             const actionable = ACTIONABLE_RISK_FACTORS.has(r.label);
-            const color = actionable ? theme.palette.severity.critical : alpha(theme.palette.primary.main, 0.65);
+            const color = actionable ? theme.palette.severityFill.critical : alpha(theme.palette.primary.main, 0.65);
             const yPos = y(r.label) ?? 0;
             return (
               <g
