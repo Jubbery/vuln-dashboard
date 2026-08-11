@@ -247,6 +247,89 @@ export function occurrencesForCve(dataset: Dataset, cve: string): Occurrence[] {
   return dataset.occurrences.filter((o) => o.cve === cve);
 }
 
+// ---------------------------------------------------------- CVE impact ------
+
+export interface CveImpact {
+  total: number;
+  images: number;
+  repos: number;
+  groups: number;
+  withFix: number;
+  manualDismissed: number;
+  aiDismissed: number;
+  /** Affected packages, most occurrences first. */
+  packages: Array<{ name: string; version: string; count: number }>;
+  /** Distinct scanner status strings ("fixed in 2.6.1"), most common first. */
+  statuses: Array<{ status: string; count: number }>;
+  severities: Record<Severity, number>;
+  earliestFix: number | null;
+  latestFix: number | null;
+}
+
+/** Blast radius + remediation summary for one CVE. Single pass over its
+ *  occurrence rows (already cheap thanks to the catalog split). */
+export function cveImpact(rows: Occurrence[]): CveImpact {
+  const images = new Set<number>();
+  const repos = new Set<number>();
+  const groups = new Set<number>();
+  const packages = new Map<string, { name: string; version: string; count: number }>();
+  const statuses = new Map<string, number>();
+  const severities: Record<Severity, number> = { critical: 0, high: 0, medium: 0, low: 0, unknown: 0 };
+  let withFix = 0;
+  let manualDismissed = 0;
+  let aiDismissed = 0;
+  let earliestFix: number | null = null;
+  let latestFix: number | null = null;
+
+  for (const o of rows) {
+    images.add(o.imageId);
+    repos.add(o.repoId);
+    groups.add(o.groupId);
+    severities[o.severity]++;
+    if (o.kaiStatus === KAI_MANUAL_INVALID) manualDismissed++;
+    else if (o.kaiStatus === KAI_AI_INVALID) aiDismissed++;
+    if (o.fixDate !== null) {
+      withFix++;
+      if (earliestFix === null || o.fixDate < earliestFix) earliestFix = o.fixDate;
+      if (latestFix === null || o.fixDate > latestFix) latestFix = o.fixDate;
+    }
+    const pkgKey = `${o.packageName}@${o.packageVersion}`;
+    const pkg = packages.get(pkgKey);
+    if (pkg !== undefined) pkg.count++;
+    else packages.set(pkgKey, { name: o.packageName, version: o.packageVersion, count: 1 });
+    if (o.status !== '') statuses.set(o.status, (statuses.get(o.status) ?? 0) + 1);
+  }
+
+  return {
+    total: rows.length,
+    images: images.size,
+    repos: repos.size,
+    groups: groups.size,
+    withFix,
+    manualDismissed,
+    aiDismissed,
+    packages: [...packages.values()].sort((a, b) => b.count - a.count),
+    statuses: [...statuses.entries()].map(([status, count]) => ({ status, count }))
+      .sort((a, b) => b.count - a.count),
+    severities,
+    earliestFix,
+    latestFix,
+  };
+}
+
+/** Share of unique CVEs in the scan scoring at or below this CVSS — "this
+ *  score is higher than N% of the catalog". Uses the precomputed histogram. */
+export function cvssPercentile(dataset: Dataset, cvss: number): number {
+  const hist = dataset.aggregates.cvssHistogram;
+  let below = 0;
+  let total = 0;
+  for (const b of hist) {
+    total += b.count;
+    if (b.bin < cvss) below += b.count;
+  }
+  return total === 0 ? 0 : (below / total) * 100;
+}
+
 export interface PackageGroup {
   key: string;             // "name@version"
   packageName: string;

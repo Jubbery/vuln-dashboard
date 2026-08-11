@@ -7,11 +7,18 @@ import Tooltip from '@mui/material/Tooltip';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import Typography from '@mui/material/Typography';
+import Checkbox from '@mui/material/Checkbox';
+import Divider from '@mui/material/Divider';
+import IconButton from '@mui/material/IconButton';
+import ListItemText from '@mui/material/ListItemText';
 import DownloadIcon from '@mui/icons-material/Download';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import WhatshotIcon from '@mui/icons-material/Whatshot';
 import DensitySmallIcon from '@mui/icons-material/DensitySmall';
 import DensityMediumIcon from '@mui/icons-material/DensityMedium';
+import ViewColumnIcon from '@mui/icons-material/ViewColumn';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -19,7 +26,11 @@ import type { Occurrence } from '../../types/vulnerability.ts';
 import type { TopRisk } from '../../data/selectors.ts';
 import { useDataset } from '../../data/useDataset.ts';
 import { useAppDispatch, useAppSelector } from '../../store/index.ts';
-import { gridDensitySet, compareToggled, compareCleared, type GridDensity } from '../../store/uiSlice.ts';
+import {
+  gridDensitySet, compareToggled, compareCleared,
+  columnVisibilityToggled, columnMoved, columnsReset,
+  type GridDensity,
+} from '../../store/uiSlice.ts';
 import { exportRows } from '../../utils/exportRows.ts';
 import { formatNumber } from '../../utils/format.ts';
 
@@ -30,6 +41,81 @@ import { formatNumber } from '../../utils/format.ts';
  * - Compare tray (chips + go) once CVEs are staged from the grid.
  * - Export of the current view (CSV/JSON) and density preference.
  */
+const COLUMN_LABELS: Record<string, string> = {
+  severity: 'Severity',
+  cve: 'CVE',
+  cvss: 'CVSS',
+  packageName: 'Package',
+  packageVersion: 'Version',
+  packageType: 'Type',
+  image: 'Image',
+  fixDate: 'Fix date',
+  kaiStatus: 'Triage',
+};
+
+/** Show/hide + reorder for the customizable grid columns, persisted with the
+ *  rest of the dashboard preferences. Community-tier DataGrid has no drag
+ *  reorder, so ordering is explicit up/down controls in the same menu. */
+function ColumnsMenu(): ReactNode {
+  const dispatch = useAppDispatch();
+  const columns = useAppSelector((s) => s.ui.columns);
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const customized = columns.hidden.length > 0;
+
+  return (
+    <>
+      <Button
+        size="small"
+        variant="outlined"
+        startIcon={<ViewColumnIcon />}
+        onClick={(e) => setAnchor(e.currentTarget)}
+        aria-haspopup="menu"
+      >
+        Columns{customized ? ` (${columns.order.length - columns.hidden.length})` : ''}
+      </Button>
+      <Menu anchorEl={anchor} open={anchor !== null} onClose={() => setAnchor(null)}>
+        {columns.order.map((field, i) => {
+          const visible = !columns.hidden.includes(field);
+          return (
+            <MenuItem key={field} dense sx={{ pr: 1 }} onClick={() => dispatch(columnVisibilityToggled(field))}>
+              <Checkbox
+                size="small"
+                checked={visible}
+                disableRipple
+                sx={{ p: 0.5, mr: 1 }}
+                inputProps={{ 'aria-label': `${visible ? 'Hide' : 'Show'} ${COLUMN_LABELS[field] ?? field} column` }}
+              />
+              <ListItemText primaryTypographyProps={{ variant: 'body2' }} sx={{ mr: 2 }}>
+                {COLUMN_LABELS[field] ?? field}
+              </ListItemText>
+              <IconButton
+                size="small"
+                disabled={i === 0}
+                aria-label={`Move ${COLUMN_LABELS[field] ?? field} column left`}
+                onClick={(e) => { e.stopPropagation(); dispatch(columnMoved({ field, dir: -1 })); }}
+              >
+                <ArrowUpwardIcon sx={{ fontSize: 15 }} />
+              </IconButton>
+              <IconButton
+                size="small"
+                disabled={i === columns.order.length - 1}
+                aria-label={`Move ${COLUMN_LABELS[field] ?? field} column right`}
+                onClick={(e) => { e.stopPropagation(); dispatch(columnMoved({ field, dir: 1 })); }}
+              >
+                <ArrowDownwardIcon sx={{ fontSize: 15 }} />
+              </IconButton>
+            </MenuItem>
+          );
+        })}
+        <Divider />
+        <MenuItem dense onClick={() => dispatch(columnsReset())}>
+          <ListItemText primaryTypographyProps={{ variant: 'body2' }}>Reset to defaults</ListItemText>
+        </MenuItem>
+      </Menu>
+    </>
+  );
+}
+
 export function ExplorerToolbar({ topRisks, rows }: { topRisks: TopRisk[]; rows: Occurrence[] }): ReactNode {
   const theme = useTheme();
   const dataset = useDataset();
@@ -97,6 +183,8 @@ export function ExplorerToolbar({ topRisks, rows }: { topRisks: TopRisk[]; rows:
           <Button size="small" onClick={() => dispatch(compareCleared())}>Clear</Button>
         </Box>
       )}
+
+      <ColumnsMenu />
 
       <ToggleButtonGroup
         exclusive

@@ -13,6 +13,7 @@ import { FilterPanel } from '../components/explorer/FilterPanel.tsx';
 import { AnalysisActions } from '../components/explorer/AnalysisActions.tsx';
 import { ExplorerToolbar } from '../components/explorer/ExplorerToolbar.tsx';
 import { OccurrenceGrid } from '../components/explorer/OccurrenceGrid.tsx';
+import { CvePeekDrawer } from '../components/explorer/CvePeekDrawer.tsx';
 import { formatNumber } from '../utils/format.ts';
 
 const PANEL_WIDTH = 272;
@@ -24,6 +25,8 @@ export default function ExplorerPage(): ReactNode {
   const filters = useAppSelector((s) => s.filters);
   const sort = useAppSelector((s) => s.ui.sort);
   const [panelOpen, setPanelOpen] = useState(false);
+  // Row click peeks instead of navigating — filter/scroll state stays live.
+  const [peekCve, setPeekCve] = useState<string | null>(null);
 
   // The one expensive computation on this page — memoized on exactly the
   // inputs that can change it. Runs in ~10–40ms over 171k rows.
@@ -65,7 +68,8 @@ export default function ExplorerPage(): ReactNode {
           <Box sx={{ mb: 2 }}><FilterPanel /></Box>
         </Collapse>
         {toolbar}
-        <OccurrenceGrid rows={rows} topRisks={topRisks} />
+        <OccurrenceGrid rows={rows} topRisks={topRisks} onRowActivate={setPeekCve} />
+        <CvePeekDrawer cve={peekCve} onClose={() => setPeekCve(null)} />
       </Box>
     );
   }
@@ -80,9 +84,10 @@ export default function ExplorerPage(): ReactNode {
         <Box sx={{ flex: 1, minWidth: 0 }}>
           {actions}
           {toolbar}
-          <OccurrenceGrid rows={rows} topRisks={topRisks} />
+          <OccurrenceGrid rows={rows} topRisks={topRisks} onRowActivate={setPeekCve} />
         </Box>
       </Box>
+      <CvePeekDrawer cve={peekCve} onClose={() => setPeekCve(null)} />
     </Box>
   );
 }

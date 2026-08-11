@@ -18,7 +18,10 @@ import type { Dataset, Occurrence } from '../../types/vulnerability.ts';
 import type { TopRisk } from '../../data/selectors.ts';
 import { useDataset } from '../../data/useDataset.ts';
 import { useAppDispatch, useAppSelector, type AppDispatch } from '../../store/index.ts';
-import { sortSet, pageSet, pageSizeSet, explorerScrollSaved, compareToggled, MAX_COMPARE } from '../../store/uiSlice.ts';
+import {
+  sortSet, pageSet, pageSizeSet, explorerScrollSaved, compareToggled, MAX_COMPARE,
+  type ColumnPrefs,
+} from '../../store/uiSlice.ts';
 import { SeverityBadge } from '../primitives/SeverityBadge.tsx';
 import { CvssScoreBar } from '../primitives/CvssScoreBar.tsx';
 import { EmptyState } from '../primitives/EmptyState.tsx';
@@ -123,7 +126,25 @@ function NoRowsOverlay(): ReactNode {
 }
 const GRID_SLOTS = { noRowsOverlay: NoRowsOverlay };
 
-export function OccurrenceGrid({ rows, topRisks = [] }: { rows: Occurrence[]; topRisks?: TopRisk[] }): ReactNode {
+/** Reorder + filter the customizable columns per saved prefs. The compare
+ *  column (field 'compare') stays pinned first. */
+function applyColumnPrefs(cols: GridColDef<Occurrence>[], prefs: ColumnPrefs): GridColDef<Occurrence>[] {
+  const byField = new Map(cols.map((c) => [c.field, c]));
+  const pinned = byField.get('compare');
+  const ordered = prefs.order
+    .filter((f) => !prefs.hidden.includes(f))
+    .flatMap((f) => { const c = byField.get(f); return c === undefined ? [] : [c]; });
+  return pinned === undefined ? ordered : [pinned, ...ordered];
+}
+
+export interface OccurrenceGridProps {
+  rows: Occurrence[];
+  topRisks?: TopRisk[];
+  /** Row activation. When omitted, falls back to navigating to the CVE page. */
+  onRowActivate?: (cve: string) => void;
+}
+
+export function OccurrenceGrid({ rows, topRisks = [], onRowActivate }: OccurrenceGridProps): ReactNode {
   const dataset = useDataset();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -134,9 +155,10 @@ export function OccurrenceGrid({ rows, topRisks = [] }: { rows: Occurrence[]; to
   const compareCves = useAppSelector((s) => s.ui.compareCves);
   const savedScrollTop = useAppSelector((s) => s.ui.explorerScrollTop);
 
+  const columnPrefs = useAppSelector((s) => s.ui.columns);
   const columns = useMemo(
-    () => buildColumns(dataset, compareCves, dispatch),
-    [dataset, compareCves, dispatch],
+    () => applyColumnPrefs(buildColumns(dataset, compareCves, dispatch), columnPrefs),
+    [dataset, compareCves, dispatch, columnPrefs],
   );
   const topRiskCves = useMemo(() => new Set(topRisks.map((r) => r.cve)), [topRisks]);
 
@@ -189,7 +211,11 @@ export function OccurrenceGrid({ rows, topRisks = [] }: { rows: Occurrence[]; to
           else if (m.page !== page) dispatch(pageSet(m.page));
         }}
         pageSizeOptions={[25, 50, 100]}
-        onRowClick={(p) => { void navigate(`/cve/${(p.row as Occurrence).cve}`); }}
+        onRowClick={(p) => {
+          const cve = (p.row as Occurrence).cve;
+          if (onRowActivate !== undefined) onRowActivate(cve);
+          else void navigate(`/cve/${cve}`);
+        }}
         slots={GRID_SLOTS}
         sx={{
           border: 1,
