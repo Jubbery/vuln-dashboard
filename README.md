@@ -6,6 +6,10 @@ packages, and CVEs — with the main thread never blocking.
 
 171,711 vulnerability occurrences · 1,228 unique CVEs · 756 images · 501 repos
 
+**Live demo:** _URL pending deploy — see [Setup](#setup) for the sample-data constraint._
+
+![Overview page — stat cards, severity donut, and top riskiest images over the full 270MB scan](docs/screenshot.jpg)
+
 ---
 
 ## Contents
