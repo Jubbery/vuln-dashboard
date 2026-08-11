@@ -44,7 +44,7 @@ export function TopRiskImagesBar({ topRiskImages, dataset, width, height }: TopR
   const innerH = height - MARGIN.top - MARGIN.bottom;
 
   const y = useMemo(
-    () => d3.scaleBand<number>().domain(rows.map((r) => r.imageId)).range([0, innerH]).padding(0.3),
+    () => d3.scaleBand<number>().domain(rows.map((r) => r.imageId)).range([0, innerH]).padding(0.5),
     [rows, innerH],
   );
   const x = useMemo(
