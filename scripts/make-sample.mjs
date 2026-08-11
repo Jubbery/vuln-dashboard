@@ -1,14 +1,16 @@
 /**
  * Builds a deployable sample of the scan file.
  *
- * Takes whole groups from the source file until the output would exceed the
- * size budget, then closes the JSON. The result has the SAME nested shape as
- * the original, so the deployed build exercises the identical code path:
- * same tokenizer, same normalizer, same aggregation.
+ * Streams the source and copies whole REPOS (not whole groups — the source
+ * has only 6 groups averaging ~45MB, so group granularity could fit nothing
+ * into the budget) until the output would exceed the size budget. The result
+ * has the SAME nested shape as the original, so the deployed build exercises
+ * the identical code path: same tokenizer, same normalizer, same aggregation.
  *
  * Usage: node scripts/make-sample.mjs <source.json> [outPath] [budgetMB]
  *
- * Zero dependencies; streams — never holds the source in memory.
+ * Zero dependencies. Sequential single-pass parse with an explicit cursor —
+ * the buffer only ever holds the value currently being scanned.
  */
 
 import { createReadStream, createWriteStream, statSync } from 'node:fs';
@@ -24,116 +26,201 @@ if (!src) {
 const BUDGET = Number(budgetArg) * 1024 * 1024;
 const mb = (n) => `${(n / 1024 / 1024).toFixed(1)}MB`;
 
-/**
- * Brace-depth scan (string-aware) over the `groups` object, emitting one
- * top-level group at a time. Mirrors src/workers/tokenizer.ts.
- */
-async function main() {
-  const total = statSync(src).size;
-  const out = createWriteStream(outPath);
-  out.write('{"_note":"Truncated sample of ui_demo.json — whole groups, identical schema. See README.","name":"default","groups":{');
+// ---------------------------------------------------------------- reader ---
+// Chunked reader with an absolute-position cursor. `need(i)` guarantees the
+// buffer extends past index i (or throws at EOF). `drop(i)` discards
+// everything before i so memory stays bounded by the largest single value.
 
-  let buf = '';
-  let inGroups = false;
+const total = statSync(src).size;
+const stream = createReadStream(src, { encoding: 'utf8', highWaterMark: 1 << 20 });
+const chunks = stream[Symbol.asyncIterator]();
+let buf = '';
+let bytesRead = 0;
+let eof = false;
+
+async function need(i) {
+  while (i >= buf.length) {
+    const { value, done } = await chunks.next();
+    if (done) { eof = true; return false; }
+    bytesRead += Buffer.byteLength(value);
+    buf += value;
+  }
+  return true;
+}
+
+function drop(i) {
+  buf = buf.slice(i);
+  return 0;
+}
+
+// ---------------------------------------------------------------- lexing ---
+
+async function skipWs(i) {
+  for (;;) {
+    if (!(await need(i))) return i;
+    const c = buf[i];
+    if (c === ' ' || c === '\n' || c === '\r' || c === '\t' || c === ',') i++;
+    else return i;
+  }
+}
+
+/** buf[i] must be '"'. Returns index just past the closing quote. */
+async function scanString(i) {
+  i++; // opening quote
+  let escaped = false;
+  for (;;) {
+    if (!(await need(i))) throw new Error('EOF inside string');
+    const c = buf[i];
+    if (escaped) escaped = false;
+    else if (c === '\\') escaped = true;
+    else if (c === '"') return i + 1;
+    i++;
+  }
+}
+
+/** buf[i] must be '{' or '['. Returns index just past the matching close. */
+async function scanContainer(i) {
   let depth = 0;
   let inString = false;
   let escaped = false;
-  let groupStart = -1;
-  let pendingKey = null;
-  let written = 0;
-  let groups = 0;
-  let bytesRead = 0;
+  for (;;) {
+    if (!(await need(i))) throw new Error('EOF inside container');
+    const c = buf[i];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (c === '\\') escaped = true;
+      else if (c === '"') inString = false;
+    } else if (c === '"') {
+      inString = true;
+    } else if (c === '{' || c === '[') {
+      depth++;
+    } else if (c === '}' || c === ']') {
+      depth--;
+      if (depth === 0) return i + 1;
+    }
+    i++;
+  }
+}
 
-  const stream = createReadStream(src, { encoding: 'utf8', highWaterMark: 1 << 20 });
+/** Scalar value (string/number/bool/null) starting at i. */
+async function scanScalar(i) {
+  if (buf[i] === '"') return scanString(i);
+  for (;;) {
+    if (!(await need(i))) return i;
+    const c = buf[i];
+    if (c === ',' || c === '}' || c === ']' || c === ' ' || c === '\n' || c === '\r' || c === '\t') return i;
+    i++;
+  }
+}
 
-  for await (const chunk of stream) {
-    bytesRead += Buffer.byteLength(chunk);
-    buf += chunk;
+// ----------------------------------------------------------------- main ----
 
-    for (let i = 0; i < buf.length; i++) {
-      const c = buf[i];
+async function main() {
+  const out = createWriteStream(outPath);
+  out.write('{"_note":"Truncated sample of ui_demo.json — whole repos, identical schema. See README.","name":"default","groups":{');
 
-      if (inString) {
-        if (escaped) escaped = false;
-        else if (c === '\\') escaped = true;
-        else if (c === '"') inString = false;
-        continue;
+  // Position the cursor just past `"groups":` + '{'.
+  for (;;) {
+    const idx = buf.indexOf('"groups"');
+    if (idx !== -1) {
+      let i = buf.indexOf('{', idx + 8);
+      while (i === -1) {
+        if (!(await need(buf.length))) throw new Error('no groups object');
+        i = buf.indexOf('{', idx + 8);
       }
-      if (c === '"') {
-        inString = true;
-        if (!inGroups) {
-          // looking for the "groups" key
-          const ahead = buf.slice(i, i + 9);
-          if (ahead === '"groups":' || ahead.startsWith('"groups"')) {
-            const colon = buf.indexOf(':', i);
-            const brace = buf.indexOf('{', colon);
-            if (colon !== -1 && brace !== -1) {
-              inGroups = true;
-              i = brace;
-              depth = 0;
+      drop(i + 1);
+      break;
+    }
+    if (!(await need(buf.length))) throw new Error('no "groups" key found');
+  }
+
+  let written = 0;
+  let groupsOut = 0;
+  let reposOut = 0;
+  let budgetHit = false;
+
+  // At the top level of the groups object.
+  groupLoop:
+  for (;;) {
+    let i = await skipWs(0);
+    if (eof && i >= buf.length) break;
+    if (buf[i] === '}') break;                       // end of groups object
+
+    // group key
+    const keyEnd = await scanString(i);
+    const groupKey = buf.slice(i, keyEnd);
+    i = await skipWs(keyEnd);
+    if (buf[i] !== ':') throw new Error(`expected : after group key ${groupKey}`);
+    i = await skipWs(i + 1);
+    if (buf[i] !== '{') throw new Error(`expected { for group ${groupKey}`);
+    i = drop(i + 1);                                 // inside the group object
+
+    // Walk the group object's fields; copy scalars, sample "repos".
+    const scalarFields = [];
+    const repoEntries = [];
+    for (;;) {
+      i = await skipWs(i);
+      if (buf[i] === '}') { i++; break; }            // end of group object
+
+      const fEnd = await scanString(i);
+      const fieldKey = buf.slice(i, fEnd);
+      i = await skipWs(fEnd);
+      if (buf[i] !== ':') throw new Error(`expected : after ${fieldKey} in group ${groupKey}`);
+      i = await skipWs(i + 1);
+
+      if (fieldKey === '"repos"') {
+        if (buf[i] !== '{') throw new Error(`expected { for repos of ${groupKey}`);
+        i = drop(i + 1);                             // inside repos object
+        for (;;) {
+          i = await skipWs(i);
+          if (buf[i] === '}') { i++; break; }        // end of repos
+
+          const rEnd = await scanString(i);
+          const repoKey = buf.slice(i, rEnd);
+          i = await skipWs(rEnd);
+          if (buf[i] !== ':') throw new Error(`expected : after repo ${repoKey}`);
+          i = await skipWs(i + 1);
+          const vEnd = await scanContainer(i);
+          if (!budgetHit) {
+            const entry = `${repoKey}:${buf.slice(i, vEnd)}`;
+            if (written + entry.length > BUDGET) {
+              budgetHit = true;                      // keep parsing, stop copying
+            } else {
+              repoEntries.push(entry);
+              written += entry.length;
+              reposOut++;
             }
           }
-        } else if (depth === 0) {
-          // a group name key at the top level of `groups`
-          const end = buf.indexOf('"', i + 1);
-          if (end === -1) break;            // need more data
-          pendingKey = buf.slice(i, end + 1);
-          i = end;
-          inString = false;
+          i = drop(vEnd);
+          process.stdout.write(`\r  ${groupsOut} groups · ${reposOut} repos · ${mb(written)} · read ${mb(bytesRead)}/${mb(total)}`);
         }
-        continue;
-      }
-
-      if (!inGroups) continue;
-
-      if (c === '{') {
-        if (depth === 0) groupStart = i;
-        depth++;
-      } else if (c === '}') {
-        depth--;
-        if (depth === 0 && groupStart !== -1 && pendingKey !== null) {
-          const body = buf.slice(groupStart, i + 1);
-          const entry = `${groups > 0 ? ',' : ''}${pendingKey}:${body}`;
-          if (written + entry.length > BUDGET) {
-            out.write('}}\n');
-            out.end();
-            await new Promise((r) => out.on('close', r));
-            console.log(`\nWrote ${outPath}`);
-            console.log(`  groups: ${groups}`);
-            console.log(`  size:   ${mb(statSync(outPath).size)} (budget ${mb(BUDGET)})`);
-            console.log(`  source: ${mb(total)} — sample is ${((statSync(outPath).size / total) * 100).toFixed(1)}%`);
-            return;
-          }
-          out.write(entry);
-          written += entry.length;
-          groups++;
-          process.stdout.write(`\r  ${groups} groups · ${mb(written)} · read ${mb(bytesRead)}/${mb(total)}`);
-          groupStart = -1;
-          pendingKey = null;
-        } else if (depth < 0) {
-          // end of the groups object
-          out.write('}}\n');
-          out.end();
-          await new Promise((r) => out.on('close', r));
-          console.log(`\nWrote ${outPath} (entire source fit): ${groups} groups, ${mb(statSync(outPath).size)}`);
-          return;
-        }
+      } else if (buf[i] === '{' || buf[i] === '[') {
+        const vEnd = await scanContainer(i);
+        scalarFields.push(`${fieldKey}:${buf.slice(i, vEnd)}`);
+        i = vEnd;
+      } else {
+        const vEnd = await scanScalar(i);
+        scalarFields.push(`${fieldKey}:${buf.slice(i, vEnd)}`);
+        i = vEnd;
       }
     }
 
-    // Retain only the in-flight group; drop everything already emitted.
-    if (groupStart !== -1) {
-      buf = buf.slice(groupStart);
-      groupStart = 0;
-    } else if (pendingKey === null) {
-      buf = buf.slice(-16);   // keep a small tail in case a key straddles chunks
+    if (repoEntries.length > 0) {
+      const head = scalarFields.length > 0 ? `${scalarFields.join(',')},` : '';
+      out.write(`${groupsOut > 0 ? ',' : ''}${groupKey}:{${head}"repos":{${repoEntries.join(',')}}}`);
+      groupsOut++;
     }
+    i = drop(i);
+    if (budgetHit) break groupLoop;                  // budget reached — done
   }
 
   out.write('}}\n');
   out.end();
   await new Promise((r) => out.on('close', r));
-  console.log(`\nWrote ${outPath}: ${groups} groups, ${mb(statSync(outPath).size)} (source truncated before budget)`);
+  const size = statSync(outPath).size;
+  console.log(`\nWrote ${outPath}: ${groupsOut} groups, ${reposOut} repos, ${mb(size)}`);
+  console.log(`  budget ${mb(BUDGET)} · source ${mb(total)} · sample is ${((size / total) * 100).toFixed(1)}% of source`);
+  if (!budgetHit) console.log('  (entire source fit within the budget)');
 }
 
 main().catch((e) => {
