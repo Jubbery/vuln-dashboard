@@ -24,6 +24,15 @@ interface Slice { label: string; value: number; color?: string }
 const MAX_DONUT_SLICES = 8;
 const MAX_BARS = 12;
 
+const KAI_LABEL: Record<string, string> = {
+  none: 'active (untriaged)',
+  'invalid - norisk': 'manual dismissed',
+  'ai-invalid-norisk': 'AI dismissed',
+};
+
+/** Ordered dimensions keep their natural axis; the rest rank by count. */
+export const ORDERED_DIMENSIONS: ReadonlySet<BreakdownDimension> = new Set(['year', 'cvssBand']);
+
 /** Data for every dimension comes straight from the precomputed aggregates —
  *  the builder can't create a card the worker didn't already pay for. */
 function slicesFor(dataset: Dataset, dimension: BreakdownDimension, severityFill: Record<Severity, string>): Slice[] {
@@ -38,6 +47,21 @@ function slicesFor(dataset: Dataset, dimension: BreakdownDimension, severityFill
     case 'packageType':
       return Object.entries(a.byPackageType).map(([label, value]) => ({ label, value }))
         .sort((x, y) => y.value - x.value);
+    case 'group':
+      return a.byGroup
+        .map((value, id) => ({ label: dataset.groupNames[id] ?? `group ${id}`, value }))
+        .filter((d) => d.value > 0)
+        .sort((x, y) => y.value - x.value);
+    case 'kaiStatus':
+      return Object.entries(a.byKaiStatus)
+        .map(([k, value]) => ({ label: KAI_LABEL[k] ?? k, value }))
+        .sort((x, y) => y.value - x.value);
+    case 'cvssBand':
+      return a.cvssHistogram.map((b) => ({
+        label: b.bin.toFixed(1),
+        value: b.count,
+        color: severityFill[b.bin >= 9 ? 'critical' : b.bin >= 7 ? 'high' : b.bin >= 4 ? 'medium' : 'low'],
+      }));
     case 'year':
       return a.publishedTrend.map((t) => ({
         label: String(t.year),
@@ -113,6 +137,60 @@ export function BreakdownChart({ dataset, dimension, form, width, height }: Brea
           ))}
         </Stack>
       </Box>
+    );
+  }
+
+  if (form === 'column') {
+    // Vertical columns — the right shape for ordered axes (years, CVSS bands).
+    const cols = all.slice(0, 40);
+    const m = { top: 8, right: 4, bottom: 20, left: 40 };
+    const innerW = Math.max(0, width - m.left - m.right);
+    const innerH = Math.max(0, height - m.top - m.bottom);
+    const x = d3.scaleBand<string>().domain(cols.map((d) => d.label)).range([0, innerW]).padding(0.25);
+    const y = d3.scaleLinear().domain([0, d3.max(cols, (d) => d.value) ?? 1]).nice().range([innerH, 0]);
+    const labelEvery = Math.max(1, Math.ceil(cols.length / Math.max(1, Math.floor(innerW / 44))));
+    return (
+      <>
+        <svg width={width} height={height} role="img"
+          aria-label={`${dimension} breakdown across ${cols.length} buckets`}>
+          <g transform={`translate(${m.left},${m.top})`}>
+            {y.ticks(4).map((t) => (
+              <g key={t} transform={`translate(0,${y(t)})`}>
+                <line x1={0} x2={innerW} stroke={theme.palette.divider} strokeWidth={1} />
+                <text x={-8} dy="0.35em" textAnchor="end" fontSize={10} fill={theme.palette.text.secondary}>
+                  {formatCompact(t)}
+                </text>
+              </g>
+            ))}
+            {cols.map((d, i) => (
+              <g key={d.label}
+                onMouseMove={(e) => {
+                  show(e, <span><strong>{d.label}</strong> {formatNumber(d.value)} · {formatPercent(d.value, total)}</span>);
+                }}
+                onMouseLeave={hide}>
+                <rect x={x(d.label) ?? 0} y={0} width={x.bandwidth()} height={innerH} fill="transparent" />
+                <rect
+                  x={x(d.label) ?? 0}
+                  y={y(d.value)}
+                  width={x.bandwidth()}
+                  height={innerH - y(d.value)}
+                  rx={1.5}
+                  fill={d.color ?? theme.palette.primary.main}
+                  stroke={theme.palette.background.paper}
+                  strokeWidth={1}
+                />
+                {i % labelEvery === 0 && (
+                  <text x={(x(d.label) ?? 0) + x.bandwidth() / 2} y={innerH + 14} textAnchor="middle"
+                    fontSize={9} fill={theme.palette.text.secondary}>
+                    {d.label}
+                  </text>
+                )}
+              </g>
+            ))}
+          </g>
+        </svg>
+        <ChartTooltip tip={tip} width={width} />
+      </>
     );
   }
 

@@ -35,8 +35,10 @@ export interface WidgetLayout {
   h: number;
 }
 
-export type BreakdownDimension = 'severity' | 'riskFactor' | 'packageType' | 'year';
-export type BreakdownForm = 'bar' | 'donut';
+export type BreakdownDimension =
+  | 'severity' | 'riskFactor' | 'packageType' | 'year'
+  | 'group' | 'kaiStatus' | 'cvssBand';
+export type BreakdownForm = 'bar' | 'donut' | 'column';
 
 /** A user-composed chart card (the "add your own chart" builder). */
 export interface CustomWidget {
@@ -105,7 +107,9 @@ const defaultPrefs: UiPreferences = {
   overview: defaultOverview(),
 };
 
-const DIMENSIONS: readonly string[] = ['severity', 'riskFactor', 'packageType', 'year'];
+const DIMENSIONS: readonly string[] = [
+  'severity', 'riskFactor', 'packageType', 'year', 'group', 'kaiStatus', 'cvssBand',
+];
 
 function validOverview(o: unknown): OverviewPrefs | null {
   if (typeof o !== 'object' || o === null) return null;
@@ -119,7 +123,7 @@ function validOverview(o: unknown): OverviewPrefs | null {
     typeof c === 'object' && c !== null &&
     typeof (c as CustomWidget).id === 'string' && typeof (c as CustomWidget).title === 'string' &&
     DIMENSIONS.includes((c as CustomWidget).dimension) &&
-    ((c as CustomWidget).form === 'bar' || (c as CustomWidget).form === 'donut'));
+    ['bar', 'donut', 'column'].includes((c as CustomWidget).form));
   if (!layoutOk || !customOk || !p.hidden.every((h) => typeof h === 'string')) return null;
   return { layout: p.layout, hidden: p.hidden, custom: p.custom };
 }

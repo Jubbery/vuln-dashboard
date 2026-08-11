@@ -26,6 +26,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import { alpha, useTheme } from '@mui/material/styles';
 import { useMemo, useState, type ReactNode } from 'react';
 import GridLayout, { WidthProvider, type Layout } from 'react-grid-layout';
+import { ORDERED_DIMENSIONS } from '../components/charts/BreakdownChart.tsx';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import type { Dataset } from '../types/vulnerability.ts';
@@ -54,7 +55,15 @@ const DIMENSION_LABEL: Record<BreakdownDimension, string> = {
   riskFactor: 'Risk factors',
   packageType: 'Package types',
   year: 'Disclosure year',
+  group: 'Groups',
+  kaiStatus: 'Triage status',
+  cvssBand: 'CVSS score bands',
 };
+
+/** Minimum grid sizes so a widget can't be collapsed into uselessness. */
+function minSizeOf(id: string): { minW: number; minH: number } {
+  return id.startsWith('stat-') ? { minW: 2, minH: 2 } : { minW: 3, minH: 4 };
+}
 
 /**
  * Built-in widget registry. Every widget is a pure view over the dataset —
@@ -155,7 +164,9 @@ function AddChartDialog({ open, onClose }: { open: boolean; onClose: () => void 
   const [form, setForm] = useState<BreakdownForm>('bar');
   const [title, setTitle] = useState('');
 
-  const effectiveForm: BreakdownForm = dimension === 'year' ? 'bar' : form;
+  // Ordered axes (years, score bands) read as columns, never as donuts.
+  const ordered = ORDERED_DIMENSIONS.has(dimension);
+  const effectiveForm: BreakdownForm = ordered && form === 'donut' ? 'column' : form;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
@@ -170,12 +181,13 @@ function AddChartDialog({ open, onClose }: { open: boolean; onClose: () => void 
             ))}
           </Select>
         </FormControl>
-        <FormControl size="small" disabled={dimension === 'year'}>
+        <FormControl size="small">
           <InputLabel id="form-label">Chart</InputLabel>
           <Select labelId="form-label" label="Chart" value={effectiveForm}
             onChange={(e) => setForm(e.target.value as BreakdownForm)}>
             <MenuItem value="bar">Ranked bars</MenuItem>
-            <MenuItem value="donut">Donut</MenuItem>
+            <MenuItem value="column">Columns</MenuItem>
+            <MenuItem value="donut" disabled={ordered}>Donut{ordered ? ' — not for ordered axes' : ''}</MenuItem>
           </Select>
         </FormControl>
         <TextField size="small" label="Title (optional)" value={title}
@@ -323,13 +335,14 @@ export default function OverviewPage(): ReactNode {
 
       {wide ? (
         <Grid
-          layout={visibleLayout}
+          layout={visibleLayout.map((l) => ({ ...l, ...minSizeOf(l.i) }))}
           cols={12}
           rowHeight={44}
           margin={[12, 12]}
           compactType="vertical"
           isDraggable={editing}
           isResizable={editing}
+          resizeHandles={['s', 'e', 'se', 'w', 'sw']}
           draggableCancel=".rgl-nodrag"
           onLayoutChange={(next: Layout[]) => {
             if (!editing) return;

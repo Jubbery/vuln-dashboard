@@ -28,6 +28,7 @@ export function computeAggregates(
   const bySeverity = emptySeverityRecord();
   const byPackageType: Record<string, number> = {};
   const byKaiStatus: Record<string, number> = {};
+  const byGroup: number[] = [];
   const packageNameSet = new Set<string>();
 
   // AI-vs-manual triage relationship (email spec)
@@ -44,6 +45,7 @@ export function computeAggregates(
     byPackageType[o.packageType] = (byPackageType[o.packageType] ?? 0) + 1;
     byKaiStatus[o.kaiStatus ?? 'none'] = (byKaiStatus[o.kaiStatus ?? 'none'] ?? 0) + 1;
     packageNameSet.add(o.packageName);
+    byGroup[o.groupId] = (byGroup[o.groupId] ?? 0) + 1;
     dismissalBySeverity[o.severity].total++;
     if (o.kaiStatus === 'invalid - norisk') {
       manualCves.add(o.cve);
@@ -106,6 +108,7 @@ export function computeAggregates(
     byRiskFactor: riskFactorTallies.byRiskFactor,
     byPackageType,
     byKaiStatus,
+    byGroup,
     topRiskImages,
     severityVsCvss,
     cvssHistogram,
