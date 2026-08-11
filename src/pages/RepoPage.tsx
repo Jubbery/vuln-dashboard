@@ -25,6 +25,8 @@ export default function RepoPage(): ReactNode {
     () => rollupImagesInRepo(dataset, groupId, repoId),
     [dataset, groupId, repoId],
   );
+  // Length = magnitude vs the worst image; segments = composition.
+  const maxTotal = useMemo(() => Math.max(1, ...images.map((r) => r.total)), [images]);
 
   if (repoName === undefined || dataset.groupNames[groupId] === undefined) {
     return <EmptyState title="Repo not found" description="This group/repo combination doesn't exist." />;
@@ -60,7 +62,7 @@ export default function RepoPage(): ReactNode {
                     ))}
                   </Stack>
                 </Box>
-                <Box sx={{ mt: 1.5 }}>
+                <Box sx={{ mt: 1.5, width: `${(r.total / maxTotal) * 100}%`, minWidth: 40, transition: 'width 300ms ease' }}>
                   <SeverityStackedBar counts={r.counts} />
                 </Box>
               </Paper>

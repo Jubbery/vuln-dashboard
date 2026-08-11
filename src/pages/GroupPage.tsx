@@ -21,6 +21,9 @@ export default function GroupPage(): ReactNode {
   const groupName = dataset.groupNames[groupId];
 
   const repos = useMemo(() => rollupReposInGroup(dataset, groupId), [dataset, groupId]);
+  // Bars scale to the worst repo so length encodes magnitude and segments
+  // encode composition — full-width bars would all look equally bad.
+  const maxTotal = useMemo(() => Math.max(1, ...repos.map((r) => r.total)), [repos]);
 
   if (groupName === undefined) {
     return <EmptyState title="Group not found" description={`No group with id "${groupIdParam ?? ''}".`} />;
@@ -55,7 +58,7 @@ export default function GroupPage(): ReactNode {
                   ))}
                 </Stack>
               </Box>
-              <Box sx={{ mt: 1.5 }}>
+              <Box sx={{ mt: 1.5, width: `${(r.total / maxTotal) * 100}%`, minWidth: 40, transition: 'width 300ms ease' }}>
                 <SeverityStackedBar counts={r.counts} />
               </Box>
             </Paper>
