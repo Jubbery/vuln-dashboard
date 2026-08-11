@@ -327,7 +327,9 @@ export function cvssPercentile(dataset: Dataset, cvss: number): number {
     total += b.count;
     if (b.bin < cvss) below += b.count;
   }
-  return total === 0 ? 0 : (below / total) * 100;
+  // Cap at 99: a score can't outrank itself, and "higher than 100%" reads
+  // as a bug even when the histogram's top bin rounds that way.
+  return total === 0 ? 0 : Math.min(99, (below / total) * 100);
 }
 
 export interface PackageGroup {
