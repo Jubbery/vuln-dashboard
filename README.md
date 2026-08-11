@@ -6,7 +6,9 @@ packages, and CVEs — with the main thread never blocking.
 
 171,711 vulnerability occurrences · 1,228 unique CVEs · 756 images · 501 repos
 
-**Live demo:** _URL pending deploy — see [Setup](#setup) for the sample-data constraint._
+**Live demo:** <https://vuln-dash.vercel.app> — serves the committed 44MB sample
+(4 groups · 69 repos · 28,375 records) through the identical ingest path; see
+[Setup](#setup) for the constraint and how to run the full 270MB file locally.
 
 ![Overview page — stat cards, severity donut, and top riskiest images over the full 270MB scan](docs/screenshot.jpg)
 
