@@ -1,13 +1,19 @@
+import { lazy } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { DashboardLayout } from './components/layout/DashboardLayout.tsx';
+
+// Route-level code splitting (email spec: lazy loading). The Overview stays
+// eager — it's the landing route and would lazy-load immediately anyway; every
+// other page ships as its own chunk fetched on first navigation. DataGrid
+// (the heaviest dependency) leaves the initial bundle with the Explorer.
 import OverviewPage from './pages/OverviewPage.tsx';
-import ExplorerPage from './pages/ExplorerPage.tsx';
-import GroupPage from './pages/GroupPage.tsx';
-import RepoPage from './pages/RepoPage.tsx';
-import ImageDetailPage from './pages/ImageDetailPage.tsx';
-import CveDetailPage from './pages/CveDetailPage.tsx';
-import ComparePage from './pages/ComparePage.tsx';
-import NotFoundPage from './pages/NotFoundPage.tsx';
+const ExplorerPage = lazy(() => import('./pages/ExplorerPage.tsx'));
+const GroupPage = lazy(() => import('./pages/GroupPage.tsx'));
+const RepoPage = lazy(() => import('./pages/RepoPage.tsx'));
+const ImageDetailPage = lazy(() => import('./pages/ImageDetailPage.tsx'));
+const CveDetailPage = lazy(() => import('./pages/CveDetailPage.tsx'));
+const ComparePage = lazy(() => import('./pages/ComparePage.tsx'));
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage.tsx'));
 
 /** Data-router API (§ stack requirement). Mounted only after ingestion. */
 export const router = createBrowserRouter([

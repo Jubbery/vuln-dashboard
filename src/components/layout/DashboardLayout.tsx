@@ -2,9 +2,10 @@ import Box from '@mui/material/Box';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useTheme } from '@mui/material/styles';
 import { Outlet } from 'react-router-dom';
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { Sidebar } from './Sidebar.tsx';
 import { Header } from './Header.tsx';
+import { LoadingState } from '../primitives/LoadingState.tsx';
 import { useAppDispatch, useAppSelector } from '../../store/index.ts';
 import { sidebarToggled, sidebarClosed } from '../../store/uiSlice.ts';
 
@@ -51,7 +52,10 @@ export function DashboardLayout(): ReactNode {
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <Header showMenuButton={!isDesktop} onMenuClick={() => dispatch(sidebarToggled())} />
         <Box component="main" id="main-content" tabIndex={-1} sx={{ flex: 1, p: { xs: 2, md: 3 }, minWidth: 0, outline: 'none' }}>
-          <Outlet />
+          {/* Route chunks are lazy (router.tsx); one boundary covers them all. */}
+          <Suspense fallback={<LoadingState label="Loading view…" />}>
+            <Outlet />
+          </Suspense>
         </Box>
       </Box>
     </Box>
