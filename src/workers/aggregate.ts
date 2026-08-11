@@ -51,10 +51,28 @@ export function computeAggregates(
 
   const severityVsCvss: Aggregates['severityVsCvss'] = [];
   const bins = new Map<number, number>();
+  const byYear = new Map<number, Record<Severity, number>>();
   for (const meta of cveCatalog.values()) {
     severityVsCvss.push({ cve: meta.cve, severity: meta.severity, cvss: meta.cvss });
     const bin = Math.min(Math.floor(meta.cvss / CVSS_BIN_WIDTH) * CVSS_BIN_WIDTH, 10 - CVSS_BIN_WIDTH);
     bins.set(bin, (bins.get(bin) ?? 0) + 1);
+    if (meta.published !== null) {
+      const year = new Date(meta.published).getUTCFullYear();
+      let rec = byYear.get(year);
+      if (rec === undefined) { rec = emptySeverityRecord(); byYear.set(year, rec); }
+      rec[meta.severity]++;
+    }
+  }
+
+  // Contiguous year axis — gap years render as zero, not as missing ticks.
+  const publishedTrend: Aggregates['publishedTrend'] = [];
+  if (byYear.size > 0) {
+    const years = [...byYear.keys()];
+    const min = Math.min(...years);
+    const max = Math.max(...years);
+    for (let y = min; y <= max; y++) {
+      publishedTrend.push({ year: y, counts: byYear.get(y) ?? emptySeverityRecord() });
+    }
   }
   const cvssHistogram = [...bins.entries()]
     .map(([bin, count]) => ({ bin, count }))
@@ -79,5 +97,6 @@ export function computeAggregates(
       withFix: riskFactorTallies.withFixCount,
       withoutFix: occurrences.length - riskFactorTallies.withFixCount,
     },
+    publishedTrend,
   };
 }

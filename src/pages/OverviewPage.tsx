@@ -11,6 +11,7 @@ import { SeverityDonut } from '../components/charts/SeverityDonut.tsx';
 import { TopRiskImagesBar } from '../components/charts/TopRiskImagesBar.tsx';
 import { RiskFactorBar } from '../components/charts/RiskFactorBar.tsx';
 import { SeverityVsCvssScatter } from '../components/charts/SeverityVsCvssScatter.tsx';
+import { PublishedTrendChart } from '../components/charts/PublishedTrendChart.tsx';
 import { formatNumber, formatPercent } from '../utils/format.ts';
 
 /**
@@ -20,7 +21,7 @@ import { formatNumber, formatPercent } from '../utils/format.ts';
 export default function OverviewPage(): ReactNode {
   const dataset = useDataset();
   const theme = useTheme();
-  const { totals, bySeverity, byRiskFactor, topRiskImages, severityVsCvss, fixAvailability } = dataset.aggregates;
+  const { totals, bySeverity, byRiskFactor, topRiskImages, severityVsCvss, fixAvailability, publishedTrend } = dataset.aggregates;
 
   return (
     <Box>
@@ -97,6 +98,19 @@ export default function OverviewPage(): ReactNode {
             <ResponsiveChart height={300}>
               {({ width, height }) => (
                 <SeverityVsCvssScatter severityVsCvss={severityVsCvss} width={width} height={height} />
+              )}
+            </ResponsiveChart>
+          </ChartCard>
+        </Grid>
+
+        <Grid size={12}>
+          <ChartCard
+            title="Disclosures over time"
+            subtitle="unique CVEs by publication year, stacked by severity"
+          >
+            <ResponsiveChart height={220}>
+              {({ width, height }) => (
+                <PublishedTrendChart publishedTrend={publishedTrend} width={width} height={height} />
               )}
             </ResponsiveChart>
           </ChartCard>
