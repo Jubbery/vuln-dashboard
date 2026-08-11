@@ -26,6 +26,7 @@ packages, and CVEs — with the main thread never blocking.
 - [Testing](#testing)
 - [Production considerations](#production-considerations)
 - [What I'd do with more time](#what-id-do-with-more-time)
+- [A note on extensibility](#a-note-on-extensibility)
 
 ---
 
