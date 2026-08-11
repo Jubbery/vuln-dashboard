@@ -28,6 +28,7 @@ export function computeAggregates(
   const bySeverity = emptySeverityRecord();
   const byPackageType: Record<string, number> = {};
   const byKaiStatus: Record<string, number> = {};
+  const packageNameSet = new Set<string>();
 
   // per-image severity tallies
   const imageCounts: Array<Record<Severity, number>> = imageMeta.map(emptySeverityRecord);
@@ -36,6 +37,7 @@ export function computeAggregates(
     bySeverity[o.severity]++;
     byPackageType[o.packageType] = (byPackageType[o.packageType] ?? 0) + 1;
     byKaiStatus[o.kaiStatus ?? 'none'] = (byKaiStatus[o.kaiStatus ?? 'none'] ?? 0) + 1;
+    packageNameSet.add(o.packageName);
     const img = imageCounts[o.imageId];
     if (img !== undefined) img[o.severity]++;
   }
@@ -98,5 +100,6 @@ export function computeAggregates(
       withoutFix: occurrences.length - riskFactorTallies.withFixCount,
     },
     publishedTrend,
+    packageNames: [...packageNameSet].sort(),
   };
 }

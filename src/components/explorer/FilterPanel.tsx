@@ -29,6 +29,77 @@ import {
 import { formatNumber } from '../../utils/format.ts';
 
 const SEARCH_DEBOUNCE_MS = 250;
+const MAX_SUGGESTIONS = 8;
+
+interface Suggestion {
+  value: string;
+  kind: 'CVE' | 'Package';
+}
+
+/**
+ * Real-time search suggestions (email spec): as-you-type matches over the
+ * 1.2k CVE ids in the catalog and the distinct package-name vocabulary the
+ * worker collected at ingest. freeSolo — plain substring search still works,
+ * suggestions are an accelerator, not a gate.
+ */
+function SearchWithSuggestions({ draft, onDraftChange, onCommit }: {
+  draft: string;
+  onDraftChange: (v: string) => void;
+  onCommit: (v: string) => void;
+}): ReactNode {
+  const dataset = useDataset();
+
+  const vocabulary = useMemo<Suggestion[]>(() => [
+    ...[...dataset.cveCatalog.keys()].map((v): Suggestion => ({ value: v, kind: 'CVE' })),
+    ...dataset.aggregates.packageNames.map((v): Suggestion => ({ value: v, kind: 'Package' })),
+  ], [dataset]);
+
+  const matches = useMemo(() => {
+    const q = draft.trim().toLowerCase();
+    if (q.length < 2) return [];
+    const out: Suggestion[] = [];
+    for (const s of vocabulary) {
+      if (s.value.toLowerCase().includes(q)) {
+        out.push(s);
+        if (out.length >= MAX_SUGGESTIONS) break;
+      }
+    }
+    return out;
+  }, [vocabulary, draft]);
+
+  return (
+    <Autocomplete<Suggestion, false, false, true>
+      freeSolo
+      size="small"
+      options={matches}
+      groupBy={(o) => o.kind}
+      getOptionLabel={(o) => (typeof o === 'string' ? o : o.value)}
+      filterOptions={(x) => x}  // matching is done above; don't double-filter
+      inputValue={draft}
+      onInputChange={(_, v, reason) => { if (reason !== 'reset') onDraftChange(v); }}
+      onChange={(_, v) => {
+        if (v !== null) onCommit(typeof v === 'string' ? v : v.value);
+      }}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          placeholder="CVE or package…"
+          aria-label="Search CVE or package name"
+          slotProps={{
+            input: {
+              ...params.InputProps,
+              startAdornment: (
+                <InputAdornment position="start" sx={{ ml: 0.5, mr: -0.5 }}>
+                  <SearchIcon fontSize="small" />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+      )}
+    />
+  );
+}
 
 /** Severity toggle rendered as theme-colored chips. */
 function SeverityFilter(): ReactNode {
@@ -116,19 +187,10 @@ export function FilterPanel(): ReactNode {
         )}
       </Box>
 
-      <TextField
-        size="small"
-        placeholder="CVE or package…"
-        value={searchDraft}
-        onChange={(e) => setSearchDraft(e.target.value)}
-        slotProps={{
-          input: {
-            startAdornment: (
-              <InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>
-            ),
-          },
-        }}
-        aria-label="Search CVE or package name"
+      <SearchWithSuggestions
+        draft={searchDraft}
+        onDraftChange={setSearchDraft}
+        onCommit={(v) => { setSearchDraft(v); dispatch(searchSet(v)); }}
       />
 
       <Box>
