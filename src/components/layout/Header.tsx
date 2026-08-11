@@ -9,6 +9,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import type { ReactNode } from 'react';
 import { Breadcrumbs } from './Breadcrumbs.tsx';
 import { useDataset } from '../../data/useDataset.ts';
+import { ScanFilePicker } from '../primitives/ScanFilePicker.tsx';
 import { formatBytes } from '../../utils/format.ts';
 
 interface HeaderProps {
@@ -28,6 +29,7 @@ export function Header({ showMenuButton, onMenuClick }: HeaderProps): ReactNode 
         )}
         <Breadcrumbs />
         <Box sx={{ flex: 1 }} />
+        <ScanFilePicker variant="icon" />
         {diagnostics.truncated && (
           <Tooltip title={`Source file is truncated: one partial record (${formatBytes(diagnostics.unparsedTailBytes)}, ${diagnostics.partialTailPath ?? 'unknown'}) was discarded during ingestion.`}>
             {/* tabIndex so keyboard users can reach the tooltip too */}

@@ -7,7 +7,7 @@
  * keeps devtools serialization and RTK's dev-mode checks fast.
  */
 
-import { createContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { Dataset } from '../types/vulnerability.ts';
 import type { WorkerRequest, WorkerResponse } from '../types/worker.ts';
 import { useAppDispatch } from '../store/index.ts';
@@ -20,23 +20,40 @@ import { ingestStarted, ingestProgress, ingestReady, ingestFailed } from '../sto
  */
 const DATA_URL: string = import.meta.env.VITE_DATA_URL ?? '/ui_demo.json';
 
-/** Module-level singleton. Never mutated after DONE. */
+/** Module-level singleton. Never mutated after DONE; replaced wholesale when
+ *  the user loads a different scan file. */
 let datasetSingleton: Dataset | null = null;
 
 export const DatasetContext = createContext<Dataset | null>(null);
+
+/** Imperative dataset actions — separate context so data consumers don't
+ *  re-render when the control object is created. */
+export interface DatasetControl {
+  /** Re-ingest from a user-picked scan file (email-adjacent feature: lets the
+   *  deployed sample build run the full 270MB scan entirely client-side). */
+  loadFile: (file: File) => void;
+}
+export const DatasetControlContext = createContext<DatasetControl | null>(null);
+
+export function useDatasetControl(): DatasetControl {
+  const ctl = useContext(DatasetControlContext);
+  if (ctl === null) throw new Error('useDatasetControl outside DatasetProvider');
+  return ctl;
+}
 
 export function DatasetProvider({ children }: { children: ReactNode }): ReactNode {
   const dispatch = useAppDispatch();
   const [dataset, setDataset] = useState<Dataset | null>(datasetSingleton);
   const startedRef = useRef(false);
+  const workerRef = useRef<Worker | null>(null);
 
-  useEffect(() => {
-    if (startedRef.current || datasetSingleton !== null) return; // StrictMode double-mount guard
-    startedRef.current = true;
+  const start = useCallback((req: WorkerRequest): void => {
+    workerRef.current?.terminate(); // abandon any in-flight ingest
 
     const worker = new Worker(new URL('../workers/ingest.worker.ts', import.meta.url), {
       type: 'module',
     });
+    workerRef.current = worker;
 
     worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
       const msg = e.data;
@@ -69,9 +86,26 @@ export function DatasetProvider({ children }: { children: ReactNode }): ReactNod
     worker.onerror = (e) => dispatch(ingestFailed(e.message || 'Worker crashed'));
 
     dispatch(ingestStarted());
-    const req: WorkerRequest = { type: 'START', url: DATA_URL };
     worker.postMessage(req);
   }, [dispatch]);
 
-  return <DatasetContext.Provider value={dataset}>{children}</DatasetContext.Provider>;
+  useEffect(() => {
+    if (startedRef.current || datasetSingleton !== null) return; // StrictMode double-mount guard
+    startedRef.current = true;
+    start({ type: 'START', url: DATA_URL });
+  }, [start]);
+
+  const control = useMemo<DatasetControl>(() => ({
+    loadFile: (file: File) => {
+      datasetSingleton = null;
+      setDataset(null);   // back to the gate; RouterProvider unmounts
+      start({ type: 'START_FILE', file });
+    },
+  }), [start]);
+
+  return (
+    <DatasetControlContext.Provider value={control}>
+      <DatasetContext.Provider value={dataset}>{children}</DatasetContext.Provider>
+    </DatasetControlContext.Provider>
+  );
 }

@@ -16,9 +16,7 @@ const PROGRESS_INTERVAL_MS = 150;
 
 const post = (msg: WorkerResponse): void => self.postMessage(msg);
 
-async function ingest(url: string): Promise<void> {
-  const t0 = performance.now();
-
+async function ingestUrl(url: string): Promise<void> {
   const res = await fetch(url);
   if (!res.ok) {
     post({ type: 'ERROR', message: `Fetch failed: ${res.status} ${res.statusText}`, recoverable: true });
@@ -28,7 +26,16 @@ async function ingest(url: string): Promise<void> {
     post({ type: 'ERROR', message: 'Response has no body stream', recoverable: false });
     return;
   }
-  const totalBytes = Number(res.headers.get('Content-Length') ?? 0);
+  await ingestStream(res.body, Number(res.headers.get('Content-Length') ?? 0));
+}
+
+/** File upload path: same pipeline, the stream just comes from disk. */
+async function ingestFile(file: File): Promise<void> {
+  await ingestStream(file.stream(), file.size);
+}
+
+async function ingestStream(body: ReadableStream<Uint8Array>, totalBytes: number): Promise<void> {
+  const t0 = performance.now();
 
   const normalizer = createNormalizer();
   const tokenizer = createImageTokenizer((e) =>
@@ -36,7 +43,7 @@ async function ingest(url: string): Promise<void> {
   );
 
   const decoder = new TextDecoder('utf-8');
-  const reader = res.body.getReader();
+  const reader = body.getReader();
   let bytesRead = 0;
   let lastProgress = 0;
 
@@ -86,13 +93,13 @@ async function ingest(url: string): Promise<void> {
 }
 
 self.onmessage = (e: MessageEvent<WorkerRequest>): void => {
-  if (e.data.type === 'START') {
-    ingest(e.data.url).catch((err: unknown) => {
-      post({
-        type: 'ERROR',
-        message: err instanceof Error ? err.message : String(err),
-        recoverable: false,
-      });
+  const req = e.data;
+  const run = req.type === 'START' ? ingestUrl(req.url) : ingestFile(req.file);
+  run.catch((err: unknown) => {
+    post({
+      type: 'ERROR',
+      message: err instanceof Error ? err.message : String(err),
+      recoverable: false,
     });
-  }
+  });
 };

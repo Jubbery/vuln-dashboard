@@ -2,7 +2,12 @@
 
 import type { Aggregates, CveMeta, ImageMeta, IngestDiagnostics, Occurrence } from './vulnerability.ts';
 
-export type WorkerRequest = { type: 'START'; url: string };
+/** Ingest from a URL, or from a user-picked File — a File's stream() is the
+ *  same ReadableStream the fetch path uses, so both run the identical
+ *  tokenize → normalize → aggregate pipeline. */
+export type WorkerRequest =
+  | { type: 'START'; url: string }
+  | { type: 'START_FILE'; file: File };
 
 /**
  * Maps do not survive structured cloning cleanly alongside large payloads in

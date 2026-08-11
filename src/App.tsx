@@ -13,6 +13,7 @@ import { useAppSelector } from './store/index.ts';
 import { useDatasetOrNull } from './data/useDataset.ts';
 import { LoadingState } from './components/primitives/LoadingState.tsx';
 import { ErrorState } from './components/primitives/ErrorState.tsx';
+import { ScanFilePicker } from './components/primitives/ScanFilePicker.tsx';
 import { formatBytes } from './utils/format.ts';
 
 function GateFrame({ children }: { children: ReactNode }): ReactNode {
@@ -38,6 +39,9 @@ export default function App(): ReactNode {
           message={ingestion.error ?? 'Unknown error'}
           hint="Is ui_demo.json present in public/? See the README for setup."
         />
+        <Box sx={{ textAlign: 'center', pb: 2 }}>
+          <ScanFilePicker label="…or load a scan file from disk" />
+        </Box>
       </GateFrame>
     );
   }
@@ -54,6 +58,9 @@ export default function App(): ReactNode {
           message="The data file loaded but contained no vulnerability records — the server may have returned the app shell instead of the scan."
           hint="Is ui_demo.json present in public/? See the README's Setup section."
         />
+        <Box sx={{ textAlign: 'center', pb: 2 }}>
+          <ScanFilePicker label="…or load a scan file from disk" />
+        </Box>
       </GateFrame>
     );
   }
