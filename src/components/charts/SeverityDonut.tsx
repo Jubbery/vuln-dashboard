@@ -22,6 +22,9 @@ export interface SeverityDonutProps {
   bySeverity: Record<Severity, number>;
   width: number;
   height: number;
+  /** Override the default click-through (severity filter → /explorer) —
+   *  scoped pages use this to add their own filters before navigating. */
+  onSelect?: (severity: Severity) => void;
 }
 
 /**
@@ -29,7 +32,7 @@ export interface SeverityDonutProps {
  * them (§2.2). Clicking an arc applies that severity filter and jumps into
  * the Explorer — charts double as filter entry points.
  */
-export function SeverityDonut({ bySeverity, width, height }: SeverityDonutProps): ReactNode {
+export function SeverityDonut({ bySeverity, width, height, onSelect }: SeverityDonutProps): ReactNode {
   const theme = useTheme();
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -57,6 +60,7 @@ export function SeverityDonut({ bySeverity, width, height }: SeverityDonutProps)
   }
 
   const goExplore = (s: Severity): void => {
+    if (onSelect !== undefined) { onSelect(s); return; }
     dispatch(severitiesSet([s]));
     void navigate('/explorer');
   };

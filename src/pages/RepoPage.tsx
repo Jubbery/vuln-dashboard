@@ -1,25 +1,36 @@
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Grid from '@mui/material/Grid2';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
 import ButtonBase from '@mui/material/ButtonBase';
+import TravelExploreIcon from '@mui/icons-material/TravelExplore';
+import { useTheme } from '@mui/material/styles';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useMemo, type ReactNode } from 'react';
 import { useDataset } from '../data/useDataset.ts';
-import { rollupImagesInRepo } from '../data/selectors.ts';
+import { useAppDispatch } from '../store/index.ts';
+import { groupSet, repoSet, filtersCleared } from '../store/filtersSlice.ts';
+import { rollupImagesInRepo, scopeStats } from '../data/selectors.ts';
 import { EmptyState } from '../components/primitives/EmptyState.tsx';
+import { StatCard } from '../components/primitives/StatCard.tsx';
 import { SeverityBadge } from '../components/primitives/SeverityBadge.tsx';
 import { SeverityStackedBar } from '../components/primitives/SeverityStackedBar.tsx';
+import { TopRisksStrip } from '../components/primitives/TopRisksStrip.tsx';
 import { SEVERITY_ORDER } from '../theme/severity.ts';
-import { formatDate, formatNumber } from '../utils/format.ts';
+import { formatDate, formatNumber, formatPercent } from '../utils/format.ts';
 
 export default function RepoPage(): ReactNode {
   const { groupId: groupIdParam, repoId: repoIdParam } = useParams();
   const dataset = useDataset();
+  const theme = useTheme();
   const navigate = useNavigate();
+  const dispatch = useAppDispatch();
   const groupId = Number(groupIdParam);
   const repoId = Number(repoIdParam);
   const repoName = dataset.repoNames[repoId];
+  const stats = useMemo(() => scopeStats(dataset, groupId, repoId), [dataset, groupId, repoId]);
 
   const images = useMemo(
     () => rollupImagesInRepo(dataset, groupId, repoId),
@@ -34,12 +45,52 @@ export default function RepoPage(): ReactNode {
 
   return (
     <Box>
-      <Stack direction="row" spacing={2} alignItems="baseline" sx={{ mb: 2, flexWrap: 'wrap' }} useFlexGap>
+      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2, flexWrap: 'wrap' }} useFlexGap>
         <Typography variant="h1">{repoName}</Typography>
         <Typography variant="body2" color="text.secondary">
           {images.length} image version{images.length === 1 ? '' : 's'}, riskiest first
         </Typography>
+        <Box sx={{ flex: 1 }} />
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<TravelExploreIcon />}
+          onClick={() => {
+            dispatch(filtersCleared());
+            dispatch(groupSet(groupId));
+            dispatch(repoSet(repoId));
+            void navigate('/explorer');
+          }}
+        >
+          Open in Explorer
+        </Button>
       </Stack>
+
+      <Grid container spacing={2} sx={{ mb: 2 }}>
+        <Grid size={{ xs: 6, sm: 3 }}>
+          <StatCard label="Findings" value={formatNumber(stats.total)}
+            sublabel={`across ${formatNumber(stats.imageCount)} images`} />
+        </Grid>
+        <Grid size={{ xs: 6, sm: 3 }}>
+          <StatCard label="Critical" value={formatNumber(stats.bySeverity.critical)}
+            sublabel={formatPercent(stats.bySeverity.critical, stats.total)}
+            accent={theme.palette.severity.critical} />
+        </Grid>
+        <Grid size={{ xs: 6, sm: 3 }}>
+          <StatCard label="High" value={formatNumber(stats.bySeverity.high)}
+            sublabel={formatPercent(stats.bySeverity.high, stats.total)}
+            accent={theme.palette.severity.high} />
+        </Grid>
+        <Grid size={{ xs: 6, sm: 3 }}>
+          <StatCard label="Fix available" value={formatPercent(stats.withFix, stats.total)}
+            sublabel={`${formatNumber(stats.withFix)} findings`} />
+        </Grid>
+      </Grid>
+
+      <Box sx={{ mb: 2 }}>
+        <TopRisksStrip topRisks={stats.topRisks} scopeLabel={`in ${repoName}`} />
+      </Box>
+
       <Stack spacing={1.25}>
         {images.map((r) => {
           const img = dataset.imageMeta[r.imageId];

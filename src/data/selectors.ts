@@ -138,6 +138,12 @@ export interface ExplorerResult extends FilterResult {
 const TOP_RISKS = 3;
 const EXPLOIT_WILD = 'Exploit exists - in the wild';
 
+/** Most dangerous distinct CVEs within any row set (exploited > severity >
+ *  CVSS) — used by the Explorer and by the scoped drill-down pages. */
+export function topRisksIn(rows: Occurrence[], dataset: Dataset): TopRisk[] {
+  return computeTopRisks(rows, dataset);
+}
+
 function computeTopRisks(rows: Occurrence[], dataset: Dataset): TopRisk[] {
   const byCve = new Map<string, TopRisk>();
   for (const o of rows) {
@@ -191,6 +197,70 @@ function addTo(r: SeverityRollup, severity: Severity): void {
   r.counts[severity]++;
   r.total++;
   r.weightedScore += SEVERITY_WEIGHT[severity];
+}
+
+/** Group/repo-scoped analytics for the drill-down pages: the Overview's
+ *  questions, answered within one scope. Single pass over occurrences. */
+export interface ScopeStats {
+  total: number;
+  bySeverity: Record<Severity, number>;
+  withFix: number;
+  manualDismissed: number;
+  aiDismissed: number;
+  imageCount: number;
+  repoCount: number;
+  topRisks: TopRisk[];
+  /** Same shape as Aggregates['topRiskImages'] so TopRiskImagesBar reuses. */
+  topImages: Array<{ imageId: number; weightedScore: number; counts: Record<Severity, number> }>;
+}
+
+export function scopeStats(dataset: Dataset, groupId: number, repoId: number | null = null): ScopeStats {
+  const bySeverity: Record<Severity, number> = { critical: 0, high: 0, medium: 0, low: 0, unknown: 0 };
+  const perImage = new Map<number, Record<Severity, number>>();
+  const repos = new Set<number>();
+  const rows: Occurrence[] = [];
+  let withFix = 0;
+  let manualDismissed = 0;
+  let aiDismissed = 0;
+
+  for (const o of dataset.occurrences) {
+    if (o.groupId !== groupId) continue;
+    if (repoId !== null && o.repoId !== repoId) continue;
+    rows.push(o);
+    bySeverity[o.severity]++;
+    repos.add(o.repoId);
+    if (o.fixDate !== null) withFix++;
+    if (o.kaiStatus === KAI_MANUAL_INVALID) manualDismissed++;
+    else if (o.kaiStatus === KAI_AI_INVALID) aiDismissed++;
+    let img = perImage.get(o.imageId);
+    if (img === undefined) {
+      img = { critical: 0, high: 0, medium: 0, low: 0, unknown: 0 };
+      perImage.set(o.imageId, img);
+    }
+    img[o.severity]++;
+  }
+
+  const topImages = [...perImage.entries()]
+    .map(([imageId, counts]) => ({
+      imageId,
+      counts,
+      weightedScore: (Object.keys(counts) as Severity[])
+        .reduce((s, sev) => s + counts[sev] * SEVERITY_WEIGHT[sev], 0),
+    }))
+    .sort((a, b) => b.weightedScore - a.weightedScore)
+    .slice(0, 8);
+
+  return {
+    total: rows.length,
+    bySeverity,
+    withFix,
+    manualDismissed,
+    aiDismissed,
+    imageCount: perImage.size,
+    repoCount: repos.size,
+    topRisks: computeTopRisks(rows, dataset),
+    topImages,
+  };
 }
 
 /** Per-repo rollups within a group, ordered by weighted risk desc. */
