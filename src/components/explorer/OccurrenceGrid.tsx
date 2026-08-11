@@ -1,7 +1,11 @@
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Chip from '@mui/material/Chip';
+import IconButton from '@mui/material/IconButton';
 import Link from '@mui/material/Link';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { alpha } from '@mui/material/styles';
 import {
   DataGrid,
   type GridColDef,
@@ -11,16 +15,41 @@ import {
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import type { Dataset, Occurrence } from '../../types/vulnerability.ts';
+import type { TopRisk } from '../../data/selectors.ts';
 import { useDataset } from '../../data/useDataset.ts';
-import { useAppDispatch, useAppSelector } from '../../store/index.ts';
-import { sortSet, pageSet, pageSizeSet, explorerScrollSaved } from '../../store/uiSlice.ts';
+import { useAppDispatch, useAppSelector, type AppDispatch } from '../../store/index.ts';
+import { sortSet, pageSet, pageSizeSet, explorerScrollSaved, compareToggled, MAX_COMPARE } from '../../store/uiSlice.ts';
 import { SeverityBadge } from '../primitives/SeverityBadge.tsx';
 import { CvssScoreBar } from '../primitives/CvssScoreBar.tsx';
 import { EmptyState } from '../primitives/EmptyState.tsx';
 import { formatDate } from '../../utils/format.ts';
 
-function buildColumns(dataset: Dataset): GridColDef<Occurrence>[] {
+function buildColumns(
+  dataset: Dataset,
+  compareCves: string[],
+  dispatch: AppDispatch,
+): GridColDef<Occurrence>[] {
   return [
+    {
+      field: 'compare',
+      headerName: '',
+      width: 44,
+      sortable: false,
+      renderCell: (p) => {
+        const staged = compareCves.includes(p.row.cve);
+        return (
+          <IconButton
+            size="small"
+            aria-label={staged ? `Remove ${p.row.cve} from comparison` : `Add ${p.row.cve} to comparison`}
+            disabled={!staged && compareCves.length >= MAX_COMPARE}
+            onClick={(e) => { e.stopPropagation(); dispatch(compareToggled(p.row.cve)); }}
+            sx={{ color: staged ? 'primary.main' : 'text.secondary' }}
+          >
+            {staged ? <CheckCircleIcon sx={{ fontSize: 18 }} /> : <AddCircleOutlineIcon sx={{ fontSize: 18 }} />}
+          </IconButton>
+        );
+      },
+    },
     {
       field: 'severity',
       headerName: 'Severity',
@@ -94,16 +123,22 @@ function NoRowsOverlay(): ReactNode {
 }
 const GRID_SLOTS = { noRowsOverlay: NoRowsOverlay };
 
-export function OccurrenceGrid({ rows }: { rows: Occurrence[] }): ReactNode {
+export function OccurrenceGrid({ rows, topRisks = [] }: { rows: Occurrence[]; topRisks?: TopRisk[] }): ReactNode {
   const dataset = useDataset();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const sort = useAppSelector((s) => s.ui.sort);
   const page = useAppSelector((s) => s.ui.page);
   const pageSize = useAppSelector((s) => s.ui.pageSize);
+  const density = useAppSelector((s) => s.ui.gridDensity);
+  const compareCves = useAppSelector((s) => s.ui.compareCves);
   const savedScrollTop = useAppSelector((s) => s.ui.explorerScrollTop);
 
-  const columns = useMemo(() => buildColumns(dataset), [dataset]);
+  const columns = useMemo(
+    () => buildColumns(dataset, compareCves, dispatch),
+    [dataset, compareCves, dispatch],
+  );
+  const topRiskCves = useMemo(() => new Set(topRisks.map((r) => r.cve)), [topRisks]);
 
   const sortModel: GridSortModel = useMemo(
     () => [{ field: sort.field, sort: sort.direction }],
@@ -133,7 +168,8 @@ export function OccurrenceGrid({ rows }: { rows: Occurrence[] }): ReactNode {
         rows={rows}
         columns={columns}
         getRowId={(r) => r.id}
-        density="compact"
+        density={density}
+        getRowClassName={(p) => (topRiskCves.has((p.row as Occurrence).cve) ? 'top-risk-row' : '')}
         disableRowSelectionOnClick
         disableColumnMenu
         // Sorting is owned by data/selectors.ts (memoized, catalog-aware) —
@@ -160,6 +196,12 @@ export function OccurrenceGrid({ rows }: { rows: Occurrence[] }): ReactNode {
           borderColor: 'divider',
           '& .MuiDataGrid-row': { cursor: 'pointer' },
           '& .MuiDataGrid-cell': { display: 'flex', alignItems: 'center' },
+          // Post-filter critical highlighting: rows of a "fix first" CVE get
+          // a critical accent rail so they pop while scanning.
+          '& .top-risk-row': {
+            boxShadow: (t) => `inset 3px 0 0 ${t.palette.severity.critical}`,
+            backgroundColor: (t) => alpha(t.palette.severity.critical, 0.04),
+          },
         }}
         aria-label="Vulnerability occurrences"
       />

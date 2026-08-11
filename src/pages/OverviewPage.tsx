@@ -12,6 +12,7 @@ import { TopRiskImagesBar } from '../components/charts/TopRiskImagesBar.tsx';
 import { RiskFactorBar } from '../components/charts/RiskFactorBar.tsx';
 import { SeverityVsCvssScatter } from '../components/charts/SeverityVsCvssScatter.tsx';
 import { PublishedTrendChart } from '../components/charts/PublishedTrendChart.tsx';
+import { AnalysisOverlapChart } from '../components/charts/AnalysisOverlapChart.tsx';
 import { formatNumber, formatPercent } from '../utils/format.ts';
 
 /**
@@ -21,7 +22,7 @@ import { formatNumber, formatPercent } from '../utils/format.ts';
 export default function OverviewPage(): ReactNode {
   const dataset = useDataset();
   const theme = useTheme();
-  const { totals, bySeverity, byRiskFactor, topRiskImages, severityVsCvss, fixAvailability, publishedTrend } = dataset.aggregates;
+  const { totals, bySeverity, byRiskFactor, topRiskImages, severityVsCvss, fixAvailability, publishedTrend, analysisOverlap } = dataset.aggregates;
 
   return (
     <Box>
@@ -103,16 +104,24 @@ export default function OverviewPage(): ReactNode {
           </ChartCard>
         </Grid>
 
-        <Grid size={12}>
+        <Grid size={{ xs: 12, lg: 7 }}>
           <ChartCard
             title="Disclosures over time"
             subtitle="unique CVEs by publication year, stacked by severity"
           >
-            <ResponsiveChart height={220}>
+            <ResponsiveChart height={240}>
               {({ width, height }) => (
                 <PublishedTrendChart publishedTrend={publishedTrend} width={width} height={height} />
               )}
             </ResponsiveChart>
+          </ChartCard>
+        </Grid>
+        <Grid size={{ xs: 12, lg: 5 }}>
+          <ChartCard
+            title="Manual vs. AI triage"
+            subtitle="where the two analysis tracks agree — and which severities they dismiss"
+          >
+            <AnalysisOverlapChart analysisOverlap={analysisOverlap} />
           </ChartCard>
         </Grid>
       </Grid>

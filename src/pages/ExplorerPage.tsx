@@ -11,6 +11,7 @@ import { useAppSelector } from '../store/index.ts';
 import { computeExplorerResult } from '../data/selectors.ts';
 import { FilterPanel } from '../components/explorer/FilterPanel.tsx';
 import { AnalysisActions } from '../components/explorer/AnalysisActions.tsx';
+import { ExplorerToolbar } from '../components/explorer/ExplorerToolbar.tsx';
 import { OccurrenceGrid } from '../components/explorer/OccurrenceGrid.tsx';
 import { formatNumber } from '../utils/format.ts';
 
@@ -26,7 +27,7 @@ export default function ExplorerPage(): ReactNode {
 
   // The one expensive computation on this page — memoized on exactly the
   // inputs that can change it. Runs in ~10–40ms over 171k rows.
-  const { rows, manualDismissed, aiDismissed } = useMemo(
+  const { rows, manualDismissed, aiDismissed, topRisks } = useMemo(
     () => computeExplorerResult(dataset, filters, sort),
     [dataset, filters, sort],
   );
@@ -53,6 +54,7 @@ export default function ExplorerPage(): ReactNode {
   const actions = (
     <AnalysisActions manualDismissed={manualDismissed} aiDismissed={aiDismissed} visible={rows.length} />
   );
+  const toolbar = <ExplorerToolbar topRisks={topRisks} rows={rows} />;
 
   if (!wide) {
     return (
@@ -62,7 +64,8 @@ export default function ExplorerPage(): ReactNode {
         <Collapse in={panelOpen}>
           <Box sx={{ mb: 2 }}><FilterPanel /></Box>
         </Collapse>
-        <OccurrenceGrid rows={rows} />
+        {toolbar}
+        <OccurrenceGrid rows={rows} topRisks={topRisks} />
       </Box>
     );
   }
@@ -76,7 +79,8 @@ export default function ExplorerPage(): ReactNode {
         </Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           {actions}
-          <OccurrenceGrid rows={rows} />
+          {toolbar}
+          <OccurrenceGrid rows={rows} topRisks={topRisks} />
         </Box>
       </Box>
     </Box>

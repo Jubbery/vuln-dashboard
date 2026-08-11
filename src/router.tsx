@@ -6,6 +6,7 @@ import GroupPage from './pages/GroupPage.tsx';
 import RepoPage from './pages/RepoPage.tsx';
 import ImageDetailPage from './pages/ImageDetailPage.tsx';
 import CveDetailPage from './pages/CveDetailPage.tsx';
+import ComparePage from './pages/ComparePage.tsx';
 import NotFoundPage from './pages/NotFoundPage.tsx';
 
 /** Data-router API (§ stack requirement). Mounted only after ingestion. */
@@ -19,6 +20,7 @@ export const router = createBrowserRouter([
       { path: '/groups/:groupId/repos/:repoId', element: <RepoPage /> },
       { path: '/images/:imageId', element: <ImageDetailPage /> },
       { path: '/cve/:cveId', element: <CveDetailPage /> },
+      { path: '/compare', element: <ComparePage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

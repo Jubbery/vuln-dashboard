@@ -118,14 +118,57 @@ export function computeExplorerRows(dataset: Dataset, filters: FiltersState, sor
   return sortOccurrences(filterOccurrences(dataset, filters), sort, dataset);
 }
 
+export interface TopRisk {
+  cve: string;
+  severity: Severity;
+  cvss: number;
+  exploited: boolean;   // "Exploit exists - in the wild"
+  count: number;        // occurrences within the current view
+}
+
 export interface ExplorerResult extends FilterResult {
   rows: Occurrence[];   // filtered AND sorted
+  /** The most dangerous distinct CVEs in the CURRENT view — recomputed as
+   *  filters change so the answer to "what do I fix first" tracks what the
+   *  analyst is looking at (email spec: highlight the most critical
+   *  vulnerabilities after filtering). */
+  topRisks: TopRisk[];
+}
+
+const TOP_RISKS = 3;
+const EXPLOIT_WILD = 'Exploit exists - in the wild';
+
+function computeTopRisks(rows: Occurrence[], dataset: Dataset): TopRisk[] {
+  const byCve = new Map<string, TopRisk>();
+  for (const o of rows) {
+    const existing = byCve.get(o.cve);
+    if (existing !== undefined) {
+      existing.count++;
+      continue;
+    }
+    const meta = dataset.cveCatalog.get(o.cve);
+    if (meta === undefined) continue;
+    byCve.set(o.cve, {
+      cve: o.cve,
+      severity: meta.severity,
+      cvss: meta.cvss,
+      exploited: meta.riskFactors.includes(EXPLOIT_WILD),
+      count: 1,
+    });
+  }
+  // Danger order: actively exploited first, then severity, then CVSS.
+  return [...byCve.values()]
+    .sort((a, b) =>
+      Number(b.exploited) - Number(a.exploited) ||
+      SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity] ||
+      b.cvss - a.cvss)
+    .slice(0, TOP_RISKS);
 }
 
 /** Explorer's one expensive computation: filter (with triage tallies) → sort. */
 export function computeExplorerResult(dataset: Dataset, filters: FiltersState, sort: SortState): ExplorerResult {
   const r = filterOccurrencesDetailed(dataset, filters);
-  return { ...r, rows: sortOccurrences(r.rows, sort, dataset) };
+  return { ...r, rows: sortOccurrences(r.rows, sort, dataset), topRisks: computeTopRisks(r.rows, dataset) };
 }
 
 // ------------------------------------------------------------- hierarchy ---

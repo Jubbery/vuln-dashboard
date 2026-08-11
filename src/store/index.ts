@@ -2,7 +2,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import { useDispatch, useSelector, type TypedUseSelectorHook } from 'react-redux';
 import ingestionReducer from './ingestionSlice.ts';
 import filtersReducer from './filtersSlice.ts';
-import uiReducer from './uiSlice.ts';
+import uiReducer, { savePreferences } from './uiSlice.ts';
 
 /**
  * Redux holds only small, serializable UI/status state (brief §2.1). The
@@ -24,6 +24,18 @@ export const store = configureStore({
       serializableCheck: { warnAfter: 64 },
       immutableCheck: { warnAfter: 64 },
     }),
+});
+
+// Persist the preference subset (email spec: dashboard customization).
+// Cheap change-detection by reference — these fields are replaced, not
+// mutated, by their reducers.
+let lastPrefs = { pageSize: 0, sort: { field: '', direction: 'asc' as const }, gridDensity: '' };
+store.subscribe(() => {
+  const { pageSize, sort, gridDensity } = store.getState().ui;
+  if (pageSize !== lastPrefs.pageSize || sort !== lastPrefs.sort || gridDensity !== lastPrefs.gridDensity) {
+    lastPrefs = { pageSize, sort, gridDensity };
+    savePreferences({ pageSize, sort, gridDensity });
+  }
 });
 
 export type RootState = ReturnType<typeof store.getState>;

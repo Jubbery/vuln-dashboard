@@ -30,6 +30,12 @@ export function computeAggregates(
   const byKaiStatus: Record<string, number> = {};
   const packageNameSet = new Set<string>();
 
+  // AI-vs-manual triage relationship (email spec)
+  const manualCves = new Set<string>();
+  const aiCves = new Set<string>();
+  const dismissalBySeverity = {} as Record<Severity, { manual: number; ai: number; total: number }>;
+  for (const s of SEVERITIES) dismissalBySeverity[s] = { manual: 0, ai: 0, total: 0 };
+
   // per-image severity tallies
   const imageCounts: Array<Record<Severity, number>> = imageMeta.map(emptySeverityRecord);
 
@@ -38,6 +44,14 @@ export function computeAggregates(
     byPackageType[o.packageType] = (byPackageType[o.packageType] ?? 0) + 1;
     byKaiStatus[o.kaiStatus ?? 'none'] = (byKaiStatus[o.kaiStatus ?? 'none'] ?? 0) + 1;
     packageNameSet.add(o.packageName);
+    dismissalBySeverity[o.severity].total++;
+    if (o.kaiStatus === 'invalid - norisk') {
+      manualCves.add(o.cve);
+      dismissalBySeverity[o.severity].manual++;
+    } else if (o.kaiStatus === 'ai-invalid-norisk') {
+      aiCves.add(o.cve);
+      dismissalBySeverity[o.severity].ai++;
+    }
     const img = imageCounts[o.imageId];
     if (img !== undefined) img[o.severity]++;
   }
@@ -101,5 +115,19 @@ export function computeAggregates(
     },
     publishedTrend,
     packageNames: [...packageNameSet].sort(),
+    analysisOverlap: (() => {
+      let manualOnly = 0, aiOnly = 0, both = 0;
+      for (const cve of cveCatalog.keys()) {
+        const m = manualCves.has(cve);
+        const a = aiCves.has(cve);
+        if (m && a) both++;
+        else if (m) manualOnly++;
+        else if (a) aiOnly++;
+      }
+      return {
+        cveQuadrants: { manualOnly, aiOnly, both, neither: cveCatalog.size - manualOnly - aiOnly - both },
+        bySeverity: dismissalBySeverity,
+      };
+    })(),
   };
 }
