@@ -1,5 +1,6 @@
 import Box from '@mui/material/Box';
 import ButtonBase from '@mui/material/ButtonBase';
+import Collapse from '@mui/material/Collapse';
 import Typography from '@mui/material/Typography';
 import Tooltip from '@mui/material/Tooltip';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
@@ -133,27 +134,32 @@ export function AnalysisActions({ manualDismissed, aiDismissed, visible }: Analy
 
       {/* Impact bar: visible vs. removed shares of the current context.
           Widths animate on toggle — the "engaging transition" the spec asks
-          for, and an honest one: proportions are real. */}
-      <Tooltip
-        title={`${formatNumber(visible)} shown · ${formatNumber(removedManual)} removed by Analysis · ${formatNumber(removedAi)} removed by AI Analysis`}
-      >
-        <Box
-          role="img"
-          aria-label={`Filter impact: ${formatNumber(visible)} of ${formatNumber(contextTotal)} records shown`}
-          sx={{
-            mt: 1,
-            display: 'flex',
-            height: 6,
-            borderRadius: 3,
-            overflow: 'hidden',
-            bgcolor: alpha(theme.palette.text.secondary, 0.12),
-          }}
+          for, and an honest one: proportions are real. Only rendered while a
+          toggle is engaged: at rest it carried no information and read as a
+          stray divider (caught in the design audit — every element should
+          earn its place by showing an insight). */}
+      <Collapse in={removedManual + removedAi > 0}>
+        <Tooltip
+          title={`${formatNumber(visible)} shown · ${formatNumber(removedManual)} removed by Analysis · ${formatNumber(removedAi)} removed by AI Analysis`}
         >
-          <Box sx={{ width: pct(visible), bgcolor: alpha(theme.palette.text.primary, 0.55), transition: 'width 400ms ease' }} />
-          <Box sx={{ width: pct(removedManual), bgcolor: alpha(manualAccent, 0.75), transition: 'width 400ms ease' }} />
-          <Box sx={{ width: pct(removedAi), bgcolor: alpha(aiAccent, 0.75), transition: 'width 400ms ease' }} />
-        </Box>
-      </Tooltip>
+          <Box
+            role="img"
+            aria-label={`Filter impact: ${formatNumber(visible)} of ${formatNumber(contextTotal)} records shown`}
+            sx={{
+              mt: 1,
+              display: 'flex',
+              height: 6,
+              borderRadius: 3,
+              overflow: 'hidden',
+              bgcolor: alpha(theme.palette.text.secondary, 0.12),
+            }}
+          >
+            <Box sx={{ width: pct(visible), bgcolor: alpha(theme.palette.text.primary, 0.55), transition: 'width 400ms ease' }} />
+            <Box sx={{ width: pct(removedManual), bgcolor: alpha(manualAccent, 0.75), transition: 'width 400ms ease' }} />
+            <Box sx={{ width: pct(removedAi), bgcolor: alpha(aiAccent, 0.75), transition: 'width 400ms ease' }} />
+          </Box>
+        </Tooltip>
+      </Collapse>
     </Box>
   );
 }

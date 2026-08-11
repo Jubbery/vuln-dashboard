@@ -35,11 +35,25 @@ export default function ExplorerPage(): ReactNode {
     [dataset, filters, sort],
   );
 
+  const total = dataset.occurrences.length;
+  const filtered = rows.length < total;
   const header = (
     <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, mb: 1.5, flexWrap: 'wrap' }}>
       <Typography variant="h1">Explorer</Typography>
+      {/* When filters bite, the reduction IS the insight — lead with the
+          shown count and say what share of the dataset survived. */}
       <Typography variant="body2" color="text.secondary">
-        {formatNumber(rows.length)} of {formatNumber(dataset.occurrences.length)} occurrences
+        {filtered ? (
+          <>
+            <Box component="span" sx={{ color: 'text.primary', fontWeight: 600 }}>
+              {formatNumber(rows.length)}
+            </Box>
+            {' of '}{formatNumber(total)} occurrences
+            {' · '}{((rows.length / total) * 100).toFixed(rows.length / total < 0.1 ? 1 : 0)}% of the dataset
+          </>
+        ) : (
+          <>{formatNumber(total)} occurrences</>
+        )}
       </Typography>
       {!wide && (
         <Button

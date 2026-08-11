@@ -161,6 +161,9 @@ export function ExplorerToolbar({ topRisks, rows }: { topRisks: TopRisk[]; rows:
 
       <Box sx={{ flex: 1 }} />
 
+      {/* Controls wrap as one unit so no single button strands on its own
+          row (design audit: the Export button used to orphan-wrap). */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto', flexWrap: 'wrap' }}>
       {compareCves.length > 0 && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
           {compareCves.map((cve) => (
@@ -218,6 +221,7 @@ export function ExplorerToolbar({ topRisks, rows }: { topRisks: TopRisk[]; rows:
           JSON — current view
         </MenuItem>
       </Menu>
+      </Box>
     </Box>
   );
 }

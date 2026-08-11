@@ -50,7 +50,7 @@ export function AnalysisOverlapChart({ analysisOverlap }: AnalysisOverlapChartPr
       }}>
         <Stack direction="row" spacing={0.5} alignItems="center" sx={{ color, mb: 0.25 }}>
           {icons}
-          <Typography variant="caption" sx={{ color: 'inherit', fontWeight: 600 }}>{label}</Typography>
+          <Typography variant="caption" sx={{ color: 'inherit', fontWeight: 600, whiteSpace: 'nowrap' }}>{label}</Typography>
         </Stack>
         <Typography variant="h3" sx={{ fontVariantNumeric: 'tabular-nums' }}>
           {formatNumber(count)}
