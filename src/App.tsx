@@ -42,6 +42,22 @@ export default function App(): ReactNode {
     );
   }
 
+  // A "successful" parse with zero records means the fetch didn't return the
+  // scan file at all — most often the dev server's SPA fallback serving
+  // index.html because public/ui_demo.json is missing. Fail loudly instead of
+  // rendering an empty dashboard.
+  if (dataset !== null && dataset.aggregates.totals.occurrences === 0) {
+    return (
+      <GateFrame>
+        <ErrorState
+          title="Parsed 0 records"
+          message="The data file loaded but contained no vulnerability records — the server may have returned the app shell instead of the scan."
+          hint="Is ui_demo.json present in public/? See the README's Setup section."
+        />
+      </GateFrame>
+    );
+  }
+
   if (dataset === null) {
     const pct = ingestion.totalBytes > 0
       ? Math.min(100, (ingestion.bytesRead / ingestion.totalBytes) * 100)
