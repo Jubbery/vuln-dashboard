@@ -115,12 +115,16 @@ Two things about it matter more than its looks. First, it cost ~60 lines,
 because no component hardcodes color — everything reads
 `theme.palette.severity` or semantic tokens, so the entire app (including
 every D3 chart) re-skins from one palette swap. The theme toggle is the
-proof of the design system. Second, the light severity scale keeps the same
-hue semantics but darkens each value until it holds ≥5.2:1 on white —
-verified programmatically, not eyeballed. Known tradeoff: one color per
-severity must survive as body text, so light-mode medium is a dark gold that
-reads muddier as a large chart fill than the dark theme's yellow; a
-text/fill token split would resolve it and is noted as future work.
+proof of the design system. Second, light mode splits the severity tokens by
+role — the first version used one darkened set for everything, and dark red /
+brown / olive smeared together as large chart areas. `palette.severity` is
+the text-safe set (≥5.2:1 on white, for chips, labels, colored numbers);
+`palette.severityFill` is the chart-area set, a vivid ramp chosen by
+geometry, not eye: hues 352°/27°/45°/211°, luminance strictly monotonic
+across the warm ramp so colorblind users still read an ordered progression,
+every adjacent pair ≥1.67:1 apart, blue hue-isolated. Stacked segments gain
+hairline surface-colored strokes so adjacency never blurs. In dark mode one
+palette serves both roles — the split exists only where physics demands it.
 
 ## Accessibility as design, not compliance
 
