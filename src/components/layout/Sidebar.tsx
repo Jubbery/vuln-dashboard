@@ -73,7 +73,9 @@ export function Sidebar({ variant, open, onClose }: SidebarProps): ReactNode {
     return (
       <Drawer variant="permanent" sx={{
         width: SIDEBAR_WIDTH, flexShrink: 0,
-        '& .MuiDrawer-paper': { width: SIDEBAR_WIDTH, boxSizing: 'border-box', borderRight: 1, borderColor: 'divider' },
+        // overflowX hidden: the paper's 1px border leaves 247px of content box
+        // for a 248px child, which otherwise renders a horizontal scrollbar.
+        '& .MuiDrawer-paper': { width: SIDEBAR_WIDTH, boxSizing: 'border-box', borderRight: 1, borderColor: 'divider', overflowX: 'hidden' },
       }}>
         {content}
       </Drawer>
