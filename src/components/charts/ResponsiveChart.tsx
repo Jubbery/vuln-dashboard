@@ -26,6 +26,10 @@ export function ResponsiveChart({ height, children }: ResponsiveChartProps): Rea
   useEffect(() => {
     const el = ref.current;
     if (el === null) return;
+    // Initial synchronous measure: don't depend on the observer's first
+    // callback for the first paint (it can be lost across dev HMR swaps,
+    // leaving the chart permanently unrendered at width 0).
+    setWidth(el.getBoundingClientRect().width);
     const ro = new ResizeObserver((entries) => {
       const w = entries[0]?.contentRect.width ?? 0;
       // Sub-pixel resize churn (scrollbars, zoom) shouldn't re-render charts.
