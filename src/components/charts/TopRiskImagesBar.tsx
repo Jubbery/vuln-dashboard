@@ -139,7 +139,10 @@ export function TopRiskImagesBar({ topRiskImages, dataset, width, height }: TopR
         </g>
       </svg>
       <ChartTooltip tip={tip} width={width} />
-      <Box component="span" sx={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>
+      {/* sx width must be '1px' — bare 1 means 100% in the sx spacing scale,
+          which made this "hidden" span 884px wide and caused page-level
+          horizontal overflow (caught in the Phase 6 browser pass). */}
+      <Box component="span" sx={{ position: 'absolute', width: '1px', height: '1px', overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap' }}>
         Bar length is the weighted severity score; hover for raw counts.
       </Box>
     </>
