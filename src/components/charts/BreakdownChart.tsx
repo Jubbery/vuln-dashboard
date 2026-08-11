@@ -15,6 +15,8 @@ export interface BreakdownChartProps {
   dataset: Dataset;
   dimension: BreakdownDimension;
   form: BreakdownForm;
+  /** Cap for ranked dimensions; ordered axes ignore it. */
+  limit?: number;
   width: number;
   height: number;
 }
@@ -75,7 +77,7 @@ function slicesFor(dataset: Dataset, dimension: BreakdownDimension, severityFill
  * aggregates, rendered as ranked bars or a donut. D3 computes, React renders
  * (§2.2), theme supplies every color.
  */
-export function BreakdownChart({ dataset, dimension, form, width, height }: BreakdownChartProps): ReactNode {
+export function BreakdownChart({ dataset, dimension, form, limit, width, height }: BreakdownChartProps): ReactNode {
   const theme = useTheme();
   const { tip, show, hide } = useChartTooltip();
 
@@ -94,8 +96,9 @@ export function BreakdownChart({ dataset, dimension, form, width, height }: Brea
 
   if (form === 'donut') {
     // Cap slices; fold the tail into "other" so the donut stays legible.
-    const head = all.slice(0, MAX_DONUT_SLICES);
-    const tail = all.slice(MAX_DONUT_SLICES);
+    const cap = Math.min(limit ?? MAX_DONUT_SLICES, MAX_DONUT_SLICES);
+    const head = all.slice(0, cap);
+    const tail = all.slice(cap);
     const data: Slice[] = tail.length > 0
       ? [...head, { label: `other (${tail.length})`, value: tail.reduce((s, d) => s + d.value, 0), color: theme.palette.text.secondary }]
       : head;
@@ -195,7 +198,7 @@ export function BreakdownChart({ dataset, dimension, form, width, height }: Brea
   }
 
   // Ranked horizontal bars.
-  const rows = all.slice(0, MAX_BARS);
+  const rows = all.slice(0, ORDERED_DIMENSIONS.has(dimension) ? all.length : (limit ?? MAX_BARS));
   const labelW = Math.min(170, width * 0.35);
   const innerW = Math.max(0, width - labelW - 56);
   const rowH = Math.min(26, height / Math.max(1, rows.length));

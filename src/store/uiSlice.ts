@@ -46,6 +46,10 @@ export interface CustomWidget {
   title: string;
   dimension: BreakdownDimension;
   form: BreakdownForm;
+  /** Cap for ranked dimensions (undefined = sensible default). */
+  limit?: number;
+  /** Year axis only: stack columns by severity. */
+  stacked?: boolean;
 }
 
 export interface OverviewPrefs {
@@ -123,7 +127,9 @@ function validOverview(o: unknown): OverviewPrefs | null {
     typeof c === 'object' && c !== null &&
     typeof (c as CustomWidget).id === 'string' && typeof (c as CustomWidget).title === 'string' &&
     DIMENSIONS.includes((c as CustomWidget).dimension) &&
-    ['bar', 'donut', 'column'].includes((c as CustomWidget).form));
+    ['bar', 'donut', 'column'].includes((c as CustomWidget).form) &&
+    ((c as CustomWidget).limit === undefined || typeof (c as CustomWidget).limit === 'number') &&
+    ((c as CustomWidget).stacked === undefined || typeof (c as CustomWidget).stacked === 'boolean'));
   if (!layoutOk || !customOk || !p.hidden.every((h) => typeof h === 'string')) return null;
   return { layout: p.layout, hidden: p.hidden, custom: p.custom };
 }

@@ -16,8 +16,11 @@ import TextField from '@mui/material/TextField';
 import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import useMediaQuery from '@mui/material/useMediaQuery';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import AddchartIcon from '@mui/icons-material/Addchart';
 import CloseIcon from '@mui/icons-material/Close';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import DashboardCustomizeIcon from '@mui/icons-material/DashboardCustomize';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import DoneIcon from '@mui/icons-material/Done';
@@ -157,42 +160,99 @@ const WIDGET_TITLE: Record<string, string> = {
   'overlap': 'Manual vs. AI triage',
 };
 
-/** "Add chart" builder — composes a BreakdownChart card from aggregates. */
+/** "Add chart" builder with a live preview — what you see is the exact card
+ *  that lands on the grid, rendered from the same aggregates. */
 function AddChartDialog({ open, onClose }: { open: boolean; onClose: () => void }): ReactNode {
   const dispatch = useAppDispatch();
+  const dataset = useDataset();
+  const theme = useTheme();
   const [dimension, setDimension] = useState<BreakdownDimension>('packageType');
   const [form, setForm] = useState<BreakdownForm>('bar');
   const [title, setTitle] = useState('');
+  const [limit, setLimit] = useState<number | 'all'>(10);
+  const [stacked, setStacked] = useState(false);
 
   // Ordered axes (years, score bands) read as columns, never as donuts.
   const ordered = ORDERED_DIMENSIONS.has(dimension);
   const effectiveForm: BreakdownForm = ordered && form === 'donut' ? 'column' : form;
+  const isYear = dimension === 'year';
+  const stackedYear = isYear && stacked;
+
+  const preview = stackedYear ? (
+    <PublishedTrendChart publishedTrend={dataset.aggregates.publishedTrend} width={360} height={220} />
+  ) : (
+    <BreakdownChart
+      dataset={dataset}
+      dimension={dimension}
+      form={effectiveForm}
+      limit={limit === 'all' ? Number.MAX_SAFE_INTEGER : limit}
+      width={360}
+      height={220}
+    />
+  );
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>Add a chart</DialogTitle>
-      <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '8px !important' }}>
-        <FormControl size="small">
-          <InputLabel id="dim-label">Data</InputLabel>
-          <Select labelId="dim-label" label="Data" value={dimension}
-            onChange={(e) => setDimension(e.target.value as BreakdownDimension)}>
-            {(Object.keys(DIMENSION_LABEL) as BreakdownDimension[]).map((d) => (
-              <MenuItem key={d} value={d}>{DIMENSION_LABEL[d]}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        <FormControl size="small">
-          <InputLabel id="form-label">Chart</InputLabel>
-          <Select labelId="form-label" label="Chart" value={effectiveForm}
-            onChange={(e) => setForm(e.target.value as BreakdownForm)}>
-            <MenuItem value="bar">Ranked bars</MenuItem>
-            <MenuItem value="column">Columns</MenuItem>
-            <MenuItem value="donut" disabled={ordered}>Donut{ordered ? ' — not for ordered axes' : ''}</MenuItem>
-          </Select>
-        </FormControl>
-        <TextField size="small" label="Title (optional)" value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder={DIMENSION_LABEL[dimension]} />
+      <DialogContent sx={{ pt: '8px !important' }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3}>
+          <Stack spacing={2} sx={{ width: { xs: '100%', sm: 260 }, flexShrink: 0 }}>
+            <FormControl size="small">
+              <InputLabel id="dim-label">Data</InputLabel>
+              <Select labelId="dim-label" label="Data" value={dimension}
+                onChange={(e) => setDimension(e.target.value as BreakdownDimension)}>
+                {(Object.keys(DIMENSION_LABEL) as BreakdownDimension[]).map((d) => (
+                  <MenuItem key={d} value={d}>{DIMENSION_LABEL[d]}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl size="small" disabled={stackedYear}>
+              <InputLabel id="form-label">Chart</InputLabel>
+              <Select labelId="form-label" label="Chart" value={effectiveForm}
+                onChange={(e) => setForm(e.target.value as BreakdownForm)}>
+                <MenuItem value="bar">Ranked bars</MenuItem>
+                <MenuItem value="column">Columns</MenuItem>
+                <MenuItem value="donut" disabled={ordered}>Donut{ordered ? ' — not for ordered axes' : ''}</MenuItem>
+              </Select>
+            </FormControl>
+            {!ordered && (
+              <FormControl size="small">
+                <InputLabel id="limit-label">Show top</InputLabel>
+                <Select labelId="limit-label" label="Show top" value={limit}
+                  onChange={(e) => setLimit(e.target.value as number | 'all')}>
+                  {[5, 8, 10, 15].map((n) => <MenuItem key={n} value={n}>{n}</MenuItem>)}
+                  <MenuItem value="all">All</MenuItem>
+                </Select>
+              </FormControl>
+            )}
+            {isYear && (
+              <FormControlLabel
+                control={<Checkbox size="small" checked={stacked} onChange={(_, v) => setStacked(v)} />}
+                label={<Typography variant="body2">Stack by severity</Typography>}
+              />
+            )}
+            <TextField size="small" label="Title (optional)" value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={DIMENSION_LABEL[dimension]} />
+          </Stack>
+          <Box sx={{
+            flex: 1,
+            minWidth: 0,
+            border: `1px dashed ${theme.palette.divider}`,
+            borderRadius: 2,
+            p: 1.5,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            position: 'relative',
+            minHeight: 250,
+          }}>
+            <Typography variant="caption" sx={{ position: 'absolute', top: 6, left: 10 }}>
+              live preview
+            </Typography>
+            {preview}
+          </Box>
+        </Stack>
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
@@ -201,10 +261,12 @@ function AddChartDialog({ open, onClose }: { open: boolean; onClose: () => void 
             title: title.trim() === '' ? DIMENSION_LABEL[dimension] : title.trim(),
             dimension,
             form: effectiveForm,
+            limit: limit === 'all' ? undefined : limit,
+            stacked: stackedYear ? true : undefined,
           }));
           onClose();
         }}>
-          Add
+          Add to dashboard
         </Button>
       </DialogActions>
     </Dialog>
@@ -241,15 +303,38 @@ export default function OverviewPage(): ReactNode {
       <ChartCard title={custom.title} subtitle={`${DIMENSION_LABEL[custom.dimension]} · from precomputed aggregates`}>
         <ResponsiveChart height="fill">
           {({ width, height }) => (
-            <BreakdownChart dataset={dataset} dimension={custom.dimension} form={custom.form} width={width} height={height} />
+            custom.dimension === 'year' && custom.stacked === true
+              ? <PublishedTrendChart publishedTrend={dataset.aggregates.publishedTrend} width={width} height={height} />
+              : <BreakdownChart dataset={dataset} dimension={custom.dimension} form={custom.form}
+                  limit={custom.limit} width={width} height={height} />
           )}
         </ResponsiveChart>
       </ChartCard>
     ) : renderWidget(id, dataset, accent);
 
     return (
-      <Box sx={{ position: 'relative', height: '100%' }}>
-        {body}
+      <Box sx={{
+        position: 'relative',
+        height: '100%',
+        ...(editing && {
+          outline: (t) => `2px dashed ${alpha(t.palette.primary.main, 0.4)}`,
+          outlineOffset: '-2px',
+          borderRadius: 2.5,
+          cursor: 'grab',
+          '&:active': { cursor: 'grabbing' },
+          '&:hover': { outline: (t) => `2px dashed ${alpha(t.palette.primary.main, 0.8)}` },
+        }),
+      }}>
+        {/* Charts go inert while editing so drags never fight tooltips/links. */}
+        <Box sx={{ height: '100%', ...(editing && { pointerEvents: 'none', userSelect: 'none' }) }}>
+          {body}
+        </Box>
+        {editing && (
+          <DragIndicatorIcon sx={{
+            position: 'absolute', top: 6, left: 4, fontSize: 16,
+            color: 'text.secondary', opacity: 0.8, pointerEvents: 'none',
+          }} />
+        )}
         {editing && (
           <Box className="rgl-nodrag" sx={{
             position: 'absolute', top: 4, right: 4, display: 'flex', gap: 0.25,
@@ -317,10 +402,19 @@ export default function OverviewPage(): ReactNode {
     <Box>
       <GlobalStyles styles={{
         '.react-grid-placeholder': {
-          background: `${alpha(theme.palette.primary.main, 0.2)} !important`,
+          background: `${alpha(theme.palette.primary.main, 0.18)} !important`,
+          border: `2px dashed ${alpha(theme.palette.primary.main, 0.7)}`,
           borderRadius: 10,
+          opacity: '1 !important',
         },
         '.react-grid-item.react-draggable-dragging': { zIndex: 3 },
+        // Make RGL's resize affordances actually visible: themed corner ticks.
+        '.react-grid-item > .react-resizable-handle': { zIndex: 2 },
+        '.react-grid-item > .react-resizable-handle::after': {
+          borderColor: alpha(theme.palette.primary.main, 0.9),
+          width: 7,
+          height: 7,
+        },
       }} />
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1, flexWrap: 'wrap' }}>
         <Typography variant="h1">Overview</Typography>
