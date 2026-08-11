@@ -103,6 +103,25 @@ behind a button on tablet; toolbar controls wrap as a single group so no
 control ever strands on its own row. Phone is explicitly out of scope — this
 is a workstation tool.
 
+## The light "enterprise" theme
+
+A persisted toggle offers a second idiom: white surfaces, near-black text,
+hairline borders, blue links — the document-portal language of tools like the
+Red Hat customer portal, where many security teams already live. Dark remains
+the default (the console rationale above stands); light exists for bright
+offices, printing, and portal-native users.
+
+Two things about it matter more than its looks. First, it cost ~60 lines,
+because no component hardcodes color — everything reads
+`theme.palette.severity` or semantic tokens, so the entire app (including
+every D3 chart) re-skins from one palette swap. The theme toggle is the
+proof of the design system. Second, the light severity scale keeps the same
+hue semantics but darkens each value until it holds ≥5.2:1 on white —
+verified programmatically, not eyeballed. Known tradeoff: one color per
+severity must survive as body text, so light-mode medium is a dark gold that
+reads muddier as a large chart fill than the dark theme's yellow; a
+text/fill token split would resolve it and is noted as future work.
+
 ## Accessibility as design, not compliance
 
 Global `:focus-visible` outlines (including inside SVG charts), keyboard
