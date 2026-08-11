@@ -338,3 +338,16 @@ the exercise and the wrong shape for production. What would change:
   but an image with thousands would want the same treatment as the grid.
 - **Deeper profiling of the ingest tokenizer.** 4.0s is acceptable but the
   byte-level scanning loop is the obvious hot path if it needed to be faster.
+
+## A note on extensibility
+
+The best evidence for the architecture is what it absorbed after the core was
+built. Triage action buttons, CVE comparison, filtered exports, search
+suggestions, a disclosure-trend chart, persisted column customization, a
+row-peek drawer, and client-side upload of arbitrary scan files were all added
+late — and none required touching the ingest pipeline's core, restructuring
+state, or rewriting a component. Each landed in the layer designed for it: new
+aggregates went in the worker, new filter logic in the selector layer, new UI
+on the primitives. The catalog/occurrence split even made the upload feature
+nearly free — a `File.stream()` is the same `ReadableStream` the fetch path
+already consumed.
