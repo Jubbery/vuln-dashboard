@@ -45,8 +45,8 @@ export function ChartTooltip({ tip, width }: { tip: TooltipState | null; width: 
         fontSize: '0.75rem',
         lineHeight: 1.6,
         whiteSpace: 'nowrap',
-        bgcolor: '#232c38',
-        borderColor: '#33404f',
+        bgcolor: 'background.paper',
+        borderColor: 'divider',
       }}
     >
       {tip.content}

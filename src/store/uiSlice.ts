@@ -23,11 +23,14 @@ export const EXPLORER_COLUMN_FIELDS = [
 
 /** The slice of UI state worth remembering across sessions (email spec:
  *  user preferences for dashboard customization). */
+export type ThemeMode = 'dark' | 'light';
+
 export interface UiPreferences {
   pageSize: number;
   sort: SortState;
   gridDensity: GridDensity;
   columns: ColumnPrefs;
+  themeMode: ThemeMode;
 }
 
 export interface UiState extends UiPreferences {
@@ -48,6 +51,7 @@ const defaultPrefs: UiPreferences = {
   sort: { field: 'severity', direction: 'asc' }, // severity rank asc = most severe first
   gridDensity: 'compact',
   columns: { hidden: [], order: [...EXPLORER_COLUMN_FIELDS] },
+  themeMode: 'dark',
 };
 
 const isStringArray = (v: unknown): v is string[] =>
@@ -78,6 +82,7 @@ export function loadPreferences(): UiPreferences {
             ],
           }
         : defaultPrefs.columns,
+      themeMode: o.themeMode === 'light' || o.themeMode === 'dark' ? o.themeMode : defaultPrefs.themeMode,
     };
   } catch {
     return defaultPrefs;
@@ -144,6 +149,9 @@ const uiSlice = createSlice({
     columnsReset(state) {
       state.columns = { hidden: [], order: [...EXPLORER_COLUMN_FIELDS] };
     },
+    themeModeToggled(state) {
+      state.themeMode = state.themeMode === 'dark' ? 'light' : 'dark';
+    },
     compareToggled(state, action: PayloadAction<string>) {
       const cve = action.payload;
       if (state.compareCves.includes(cve)) {
@@ -172,6 +180,6 @@ const uiSlice = createSlice({
 export const {
   sidebarToggled, sidebarClosed, pageSizeSet, pageSet, sortSet, explorerScrollSaved,
   gridDensitySet, compareToggled, compareCleared,
-  columnVisibilityToggled, columnMoved, columnsReset,
+  columnVisibilityToggled, columnMoved, columnsReset, themeModeToggled,
 } = uiSlice.actions;
 export default uiSlice.reducer;

@@ -1,6 +1,6 @@
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
 import type { ReactNode } from 'react';
 import { cvssColor } from '../../theme/severity.ts';
 
@@ -12,8 +12,9 @@ export interface CvssScoreBarProps {
 
 /** Compact CVSS meter: colored 0–10 track + numeric value. */
 export function CvssScoreBar({ score, width = 64, showValue = true }: CvssScoreBarProps): ReactNode {
+  const theme = useTheme();
   const clamped = Math.max(0, Math.min(10, score));
-  const color = cvssColor(clamped);
+  const color = cvssColor(clamped, theme.palette.severity);
   return (
     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}
       aria-label={`CVSS score ${clamped.toFixed(1)} of 10`}>

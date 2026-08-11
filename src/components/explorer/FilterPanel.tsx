@@ -123,7 +123,7 @@ function SeverityFilter(): ReactNode {
             onClick={() => toggle(sev)}
             aria-pressed={active}
             sx={{
-              color: active ? '#0e1218' : color,
+              color: active ? theme.palette.getContrastText(color) : color,
               backgroundColor: active ? color : alpha(color, 0.12),
               border: `1px solid ${alpha(color, 0.5)}`,
               fontWeight: 600,

@@ -35,7 +35,7 @@ export function DashboardLayout(): ReactNode {
             px: 2,
             py: 0.75,
             bgcolor: 'primary.main',
-            color: '#0e1218',
+            color: (t) => t.palette.getContrastText(t.palette.primary.main),
             borderRadius: 1,
             fontWeight: 600,
             textDecoration: 'none',
