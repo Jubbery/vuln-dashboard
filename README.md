@@ -22,6 +22,7 @@ packages, and CVEs — with the main thread never blocking.
 - [Handling 270MB](#handling-270mb)
 - [Data model](#data-model)
 - [Technical decisions](#technical-decisions)
+- [Design](#design)
 - [Accessibility & responsive](#accessibility--responsive)
 - [Testing](#testing)
 - [Production considerations](#production-considerations)
@@ -263,6 +264,13 @@ finding isn't safe. Every severity color was checked programmatically against
 both background layers: **all ≥ 5.38:1**, comfortably past WCAG AA.
 
 ---
+
+## Design
+
+The UI's reasoning — the insight-forward principle, the severity color scale
+(and why low is blue, not green), the dark console aesthetic, the interaction
+model, and what the design audit changed — is documented in
+[docs/DESIGN.md](docs/DESIGN.md).
 
 ## Accessibility & responsive
 
