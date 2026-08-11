@@ -31,12 +31,12 @@ export const store = configureStore({
 // mutated, by their reducers.
 let lastPrefs: Partial<UiPreferences> = {};
 store.subscribe(() => {
-  const { pageSize, sort, gridDensity, columns, themeMode } = store.getState().ui;
+  const { pageSize, sort, gridDensity, columns, themeMode, overview } = store.getState().ui;
   if (pageSize !== lastPrefs.pageSize || sort !== lastPrefs.sort ||
       gridDensity !== lastPrefs.gridDensity || columns !== lastPrefs.columns ||
-      themeMode !== lastPrefs.themeMode) {
-    lastPrefs = { pageSize, sort, gridDensity, columns, themeMode };
-    savePreferences({ pageSize, sort, gridDensity, columns, themeMode });
+      themeMode !== lastPrefs.themeMode || overview !== lastPrefs.overview) {
+    lastPrefs = { pageSize, sort, gridDensity, columns, themeMode, overview };
+    savePreferences({ pageSize, sort, gridDensity, columns, themeMode, overview });
   }
 });
 

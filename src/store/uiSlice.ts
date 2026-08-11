@@ -25,12 +25,62 @@ export const EXPLORER_COLUMN_FIELDS = [
  *  user preferences for dashboard customization). */
 export type ThemeMode = 'dark' | 'light';
 
+// ------------------------------------------------- Overview customization --
+
+export interface WidgetLayout {
+  i: string;   // widget id
+  x: number;   // grid units (12-column grid)
+  y: number;
+  w: number;
+  h: number;
+}
+
+export type BreakdownDimension = 'severity' | 'riskFactor' | 'packageType' | 'year';
+export type BreakdownForm = 'bar' | 'donut';
+
+/** A user-composed chart card (the "add your own chart" builder). */
+export interface CustomWidget {
+  id: string;          // "custom-<n>"
+  title: string;
+  dimension: BreakdownDimension;
+  form: BreakdownForm;
+}
+
+export interface OverviewPrefs {
+  layout: WidgetLayout[];
+  hidden: string[];
+  custom: CustomWidget[];
+}
+
+/** The default arrangement — mirrors the original fixed Overview. */
+export const DEFAULT_OVERVIEW_LAYOUT: WidgetLayout[] = [
+  { i: 'stat-occurrences', x: 0, y: 0, w: 2, h: 2 },
+  { i: 'stat-cves', x: 2, y: 0, w: 2, h: 2 },
+  { i: 'stat-images', x: 4, y: 0, w: 2, h: 2 },
+  { i: 'stat-critical', x: 6, y: 0, w: 2, h: 2 },
+  { i: 'stat-high', x: 8, y: 0, w: 2, h: 2 },
+  { i: 'stat-fix', x: 10, y: 0, w: 2, h: 2 },
+  { i: 'severity-donut', x: 0, y: 2, w: 4, h: 6 },
+  { i: 'top-images', x: 4, y: 2, w: 8, h: 6 },
+  { i: 'risk-factors', x: 0, y: 8, w: 5, h: 7 },
+  { i: 'scatter', x: 5, y: 8, w: 7, h: 7 },
+  { i: 'trend', x: 0, y: 15, w: 7, h: 6 },
+  { i: 'overlap', x: 7, y: 15, w: 5, h: 7 },
+];
+
+const defaultOverview = (): OverviewPrefs => ({
+  layout: DEFAULT_OVERVIEW_LAYOUT.map((l) => ({ ...l })),
+  hidden: [],
+  custom: [],
+});
+
 export interface UiPreferences {
   pageSize: number;
   sort: SortState;
   gridDensity: GridDensity;
   columns: ColumnPrefs;
   themeMode: ThemeMode;
+  overview: OverviewPrefs;
 }
 
 export interface UiState extends UiPreferences {
@@ -52,7 +102,27 @@ const defaultPrefs: UiPreferences = {
   gridDensity: 'compact',
   columns: { hidden: [], order: [...EXPLORER_COLUMN_FIELDS] },
   themeMode: 'dark',
+  overview: defaultOverview(),
 };
+
+const DIMENSIONS: readonly string[] = ['severity', 'riskFactor', 'packageType', 'year'];
+
+function validOverview(o: unknown): OverviewPrefs | null {
+  if (typeof o !== 'object' || o === null) return null;
+  const p = o as Partial<OverviewPrefs>;
+  if (!Array.isArray(p.layout) || !Array.isArray(p.hidden) || !Array.isArray(p.custom)) return null;
+  const layoutOk = p.layout.every((l) =>
+    typeof l === 'object' && l !== null && typeof (l as WidgetLayout).i === 'string' &&
+    [(l as WidgetLayout).x, (l as WidgetLayout).y, (l as WidgetLayout).w, (l as WidgetLayout).h]
+      .every((n) => typeof n === 'number' && Number.isFinite(n)));
+  const customOk = p.custom.every((c) =>
+    typeof c === 'object' && c !== null &&
+    typeof (c as CustomWidget).id === 'string' && typeof (c as CustomWidget).title === 'string' &&
+    DIMENSIONS.includes((c as CustomWidget).dimension) &&
+    ((c as CustomWidget).form === 'bar' || (c as CustomWidget).form === 'donut'));
+  if (!layoutOk || !customOk || !p.hidden.every((h) => typeof h === 'string')) return null;
+  return { layout: p.layout, hidden: p.hidden, custom: p.custom };
+}
 
 const isStringArray = (v: unknown): v is string[] =>
   Array.isArray(v) && v.every((x) => typeof x === 'string');
@@ -83,6 +153,7 @@ export function loadPreferences(): UiPreferences {
           }
         : defaultPrefs.columns,
       themeMode: o.themeMode === 'light' || o.themeMode === 'dark' ? o.themeMode : defaultPrefs.themeMode,
+      overview: validOverview(o.overview) ?? defaultOverview(),
     };
   } catch {
     return defaultPrefs;
@@ -152,6 +223,43 @@ const uiSlice = createSlice({
     themeModeToggled(state) {
       state.themeMode = state.themeMode === 'dark' ? 'light' : 'dark';
     },
+    overviewLayoutChanged(state, action: PayloadAction<WidgetLayout[]>) {
+      // Merge: RGL only reports visible widgets; keep hidden widgets' slots.
+      const byId = new Map(action.payload.map((l) => [l.i, l]));
+      state.overview = {
+        ...state.overview,
+        layout: state.overview.layout.map((l) => byId.get(l.i) ?? l),
+      };
+    },
+    widgetHiddenToggled(state, action: PayloadAction<string>) {
+      const id = action.payload;
+      state.overview = {
+        ...state.overview,
+        hidden: state.overview.hidden.includes(id)
+          ? state.overview.hidden.filter((h) => h !== id)
+          : [...state.overview.hidden, id],
+      };
+    },
+    customWidgetAdded(state, action: PayloadAction<Omit<CustomWidget, 'id'>>) {
+      const id = `custom-${Date.now().toString(36)}`;
+      const maxY = Math.max(0, ...state.overview.layout.map((l) => l.y + l.h));
+      state.overview = {
+        ...state.overview,
+        custom: [...state.overview.custom, { ...action.payload, id }],
+        layout: [...state.overview.layout, { i: id, x: 0, y: maxY, w: 4, h: 6 }],
+      };
+    },
+    customWidgetRemoved(state, action: PayloadAction<string>) {
+      const id = action.payload;
+      state.overview = {
+        custom: state.overview.custom.filter((c) => c.id !== id),
+        layout: state.overview.layout.filter((l) => l.i !== id),
+        hidden: state.overview.hidden.filter((h) => h !== id),
+      };
+    },
+    overviewReset(state) {
+      state.overview = defaultOverview();
+    },
     compareToggled(state, action: PayloadAction<string>) {
       const cve = action.payload;
       if (state.compareCves.includes(cve)) {
@@ -181,5 +289,6 @@ export const {
   sidebarToggled, sidebarClosed, pageSizeSet, pageSet, sortSet, explorerScrollSaved,
   gridDensitySet, compareToggled, compareCleared,
   columnVisibilityToggled, columnMoved, columnsReset, themeModeToggled,
+  overviewLayoutChanged, widgetHiddenToggled, customWidgetAdded, customWidgetRemoved, overviewReset,
 } = uiSlice.actions;
 export default uiSlice.reducer;
