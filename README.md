@@ -54,10 +54,16 @@ VITE_DATA_URL=https://example.com/ui_demo.json npm run dev
 
 The full scan is 270MB, which exceeds free-tier hosting limits (~100MB) and is
 too large to commit. The deployment therefore serves
-`public/ui_demo.sample.json` — whole groups taken from the source file, so the
+`public/ui_demo.sample.json` — whole repos taken from the source file, so the
 nested schema is identical and **the ingest path is byte-for-byte the same**:
 same streaming tokenizer, same normalizer, same aggregation, same worker. Only
 the row count differs.
+
+**Or skip the sample entirely:** the upload button in the app header (also
+offered on ingest errors) streams any scan JSON straight from disk through the
+same worker pipeline via `File.stream()`. Nothing leaves the browser — so the
+live demo can ingest the full 270MB file at full scale, client-side, if you
+have a copy locally.
 
 ```bash
 npm run make-sample -- /path/to/ui_demo.json          # writes public/ui_demo.sample.json (~45MB)
