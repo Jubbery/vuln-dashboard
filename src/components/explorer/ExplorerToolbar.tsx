@@ -13,13 +13,12 @@ import IconButton from '@mui/material/IconButton';
 import ListItemText from '@mui/material/ListItemText';
 import DownloadIcon from '@mui/icons-material/Download';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
-import WhatshotIcon from '@mui/icons-material/Whatshot';
 import DensitySmallIcon from '@mui/icons-material/DensitySmall';
 import DensityMediumIcon from '@mui/icons-material/DensityMedium';
 import ViewColumnIcon from '@mui/icons-material/ViewColumn';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
-import { alpha, useTheme } from '@mui/material/styles';
+import { useTheme } from '@mui/material/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -32,6 +31,7 @@ import {
   columnVisibilityToggled, columnMoved, columnsReset,
   type GridDensity,
 } from '../../store/uiSlice.ts';
+import { TopRisksStrip } from '../primitives/TopRisksStrip.tsx';
 import { exportRows } from '../../utils/exportRows.ts';
 import { formatNumber } from '../../utils/format.ts';
 
@@ -126,7 +126,6 @@ function ColumnsMenu(): ReactNode {
 }
 
 export function ExplorerToolbar({ topRisks, rows }: { topRisks: TopRisk[]; rows: Occurrence[] }): ReactNode {
-  const theme = useTheme();
   const dataset = useDataset();
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -136,37 +135,7 @@ export function ExplorerToolbar({ topRisks, rows }: { topRisks: TopRisk[]; rows:
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
-      {topRisks.length > 0 && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-          <Tooltip title="Most dangerous distinct CVEs matching the current filters: actively exploited first, then severity, then CVSS">
-            <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <WhatshotIcon sx={{ fontSize: 16, color: theme.palette.severity.critical }} />
-              fix first:
-            </Typography>
-          </Tooltip>
-          {topRisks.map((r) => (
-            <Chip
-              key={r.cve}
-              size="small"
-              onClick={() => { void navigate(`/cve/${r.cve}`); }}
-              label={`${r.cve} · ${r.cvss.toFixed(1)}${r.exploited ? ' · exploited' : ''}`}
-              sx={{
-                fontWeight: 600,
-                color: theme.palette.severity[r.severity],
-                backgroundColor: alpha(theme.palette.severity[r.severity], 0.12),
-                border: `1px solid ${alpha(theme.palette.severity[r.severity], r.exploited ? 0.9 : 0.4)}`,
-                ...(r.exploited && {
-                  animation: 'riskPulse 2s ease-in-out infinite',
-                  '@keyframes riskPulse': {
-                    '0%, 100%': { boxShadow: `0 0 0 0 ${alpha(theme.palette.severity.critical, 0)}` },
-                    '50%': { boxShadow: `0 0 8px 1px ${alpha(theme.palette.severity.critical, 0.5)}` },
-                  },
-                }),
-              }}
-            />
-          ))}
-        </Box>
-      )}
+      <TopRisksStrip topRisks={topRisks} scopeLabel="matching the current filters" />
 
       <Box sx={{ flex: 1 }} />
 

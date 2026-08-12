@@ -4,6 +4,7 @@ import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import WhatshotIcon from '@mui/icons-material/Whatshot';
 import { alpha, useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { TopRisk } from '../../data/selectors.ts';
@@ -12,6 +13,9 @@ import type { TopRisk } from '../../data/selectors.ts';
 export function TopRisksStrip({ topRisks, scopeLabel }: { topRisks: TopRisk[]; scopeLabel?: string }): ReactNode {
   const theme = useTheme();
   const navigate = useNavigate();
+  // On phones the "· exploited" suffix pushes every chip onto its own row;
+  // the pulse already carries that signal.
+  const narrow = useMediaQuery(theme.breakpoints.down('sm'));
   if (topRisks.length === 0) return null;
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
@@ -26,7 +30,7 @@ export function TopRisksStrip({ topRisks, scopeLabel }: { topRisks: TopRisk[]; s
           key={r.cve}
           size="small"
           onClick={() => { void navigate(`/cve/${r.cve}`); }}
-          label={`${r.cve} · ${r.cvss.toFixed(1)}${r.exploited ? ' · exploited' : ''}`}
+          label={`${r.cve} · ${r.cvss.toFixed(1)}${r.exploited && !narrow ? ' · exploited' : ''}`}
           sx={{
             fontWeight: 600,
             color: theme.palette.severity[r.severity],

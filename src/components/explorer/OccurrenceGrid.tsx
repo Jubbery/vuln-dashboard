@@ -140,14 +140,20 @@ function applyColumnPrefs(
   narrow: boolean,
 ): GridColDef<Occurrence>[] {
   const byField = new Map(cols.map((c) => [c.field, c]));
-  const pinned = byField.get('compare');
+  // Staging for comparison is a desktop workflow; its column is dead weight
+  // on a phone where every pixel of the three survivors matters.
+  const pinned = narrow ? undefined : byField.get('compare');
   const ordered = prefs.order
     .filter((f) => !prefs.hidden.includes(f) && (!narrow || MOBILE_FIELDS.has(f)))
     .flatMap((f) => {
       const c = byField.get(f);
       if (c === undefined) return [];
-      // Let CVE absorb the leftover width instead of a fixed 168px.
-      return [narrow && c.field === 'cve' ? { ...c, flex: 1, minWidth: 130, width: undefined } : c];
+      if (!narrow) return [c];
+      // Tightened so all three fit 390px without an inner scrollbar.
+      if (c.field === 'cve') return [{ ...c, flex: 1, minWidth: 128, width: undefined }];
+      if (c.field === 'severity') return [{ ...c, width: 92 }];
+      if (c.field === 'cvss') return [{ ...c, width: 96 }];
+      return [c];
     });
   return pinned === undefined ? ordered : [pinned, ...ordered];
 }
