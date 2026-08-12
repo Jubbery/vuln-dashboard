@@ -38,7 +38,10 @@ export function RiskFactorBar({ byRiskFactor, totalOccurrences, width, height }:
     [byRiskFactor],
   );
 
-  const innerW = Math.max(0, width - MARGIN.left - MARGIN.right - LABEL_WIDTH);
+  // Adaptive label gutter (mobile/half-screen audit): labels shrink before bars.
+  const labelW = Math.min(LABEL_WIDTH, Math.max(110, width * 0.38));
+  const maxChars = labelW < 160 ? 18 : 28;
+  const innerW = Math.max(0, width - MARGIN.left - MARGIN.right - labelW);
   const innerH = height - MARGIN.top - MARGIN.bottom;
 
   const y = useMemo(
@@ -54,7 +57,7 @@ export function RiskFactorBar({ byRiskFactor, totalOccurrences, width, height }:
     return <EmptyState title="No risk factors" description="No risk-factor data available." />;
   }
 
-  const truncate = (s: string): string => (s.length > 28 ? `${s.slice(0, 27)}…` : s);
+  const truncate = (s: string): string => (s.length > maxChars ? `${s.slice(0, maxChars - 1)}…` : s);
 
   return (
     <>
@@ -96,7 +99,7 @@ export function RiskFactorBar({ byRiskFactor, totalOccurrences, width, height }:
               >
                 <rect x={0} y={-2} width={width - MARGIN.right} height={y.bandwidth() + 4} fill="transparent" />
                 <text
-                  x={LABEL_WIDTH - 10}
+                  x={labelW - 10}
                   y={y.bandwidth() / 2}
                   dy="0.35em"
                   textAnchor="end"
@@ -107,7 +110,7 @@ export function RiskFactorBar({ byRiskFactor, totalOccurrences, width, height }:
                   {truncate(r.label)}
                 </text>
                 <rect
-                  x={LABEL_WIDTH}
+                  x={labelW}
                   y={0}
                   width={Math.max(x(r.count), 1)}
                   height={y.bandwidth()}
@@ -115,7 +118,7 @@ export function RiskFactorBar({ byRiskFactor, totalOccurrences, width, height }:
                   fill={color}
                 />
                 <text
-                  x={LABEL_WIDTH + x(r.count) + 8}
+                  x={labelW + x(r.count) + 8}
                   y={y.bandwidth() / 2}
                   dy="0.35em"
                   fill={theme.palette.text.secondary}

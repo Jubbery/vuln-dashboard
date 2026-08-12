@@ -21,10 +21,10 @@ const MARGIN = { top: 4, right: 48, bottom: 4, left: 0 };
 const LABEL_WIDTH = 190;
 
 /** "repo-tail:version" — full registry path goes in the tooltip. */
-function shortLabel(name: string, version: string): string {
+function shortLabel(name: string, version: string, maxChars: number): string {
   const tail = name.split('/').pop() ?? name;
   const label = `${tail}:${version}`;
-  return label.length > 26 ? `${label.slice(0, 25)}…` : label;
+  return label.length > maxChars ? `${label.slice(0, maxChars - 1)}…` : label;
 }
 
 /**
@@ -40,7 +40,11 @@ export function TopRiskImagesBar({ topRiskImages, dataset, width, height }: TopR
 
   const rows = useMemo(() => topRiskImages.slice(0, 10), [topRiskImages]);
 
-  const innerW = Math.max(0, width - MARGIN.left - MARGIN.right - LABEL_WIDTH);
+  // Adaptive label gutter: fixed 190px starved the bars below ~500px wide
+  // (mobile/half-screen audit) — labels yield space before bars do.
+  const labelW = Math.min(LABEL_WIDTH, Math.max(96, width * 0.34));
+  const maxChars = labelW < 150 ? 15 : 26;
+  const innerW = Math.max(0, width - MARGIN.left - MARGIN.right - labelW);
   const innerH = height - MARGIN.top - MARGIN.bottom;
 
   const y = useMemo(
@@ -98,21 +102,21 @@ export function TopRiskImagesBar({ topRiskImages, dataset, width, height }: TopR
                 {/* hit area spanning the full row */}
                 <rect x={0} y={-2} width={width - MARGIN.right} height={y.bandwidth() + 4} fill="transparent" />
                 <text
-                  x={LABEL_WIDTH - 10}
+                  x={labelW - 10}
                   y={y.bandwidth() / 2}
                   dy="0.35em"
                   textAnchor="end"
                   fill={theme.palette.text.primary}
                   fontSize={12}
                 >
-                  {shortLabel(repoName, img.version)}
+                  {shortLabel(repoName, img.version, maxChars)}
                 </text>
                 {SEVERITY_ORDER.filter((s) => r.counts[s] > 0 && SEVERITY_WEIGHT[s] > 0).map((s) => {
                   const w = x(r.counts[s] * SEVERITY_WEIGHT[s]);
                   const seg = (
                     <rect
                       key={s}
-                      x={LABEL_WIDTH + xCursor}
+                      x={labelW + xCursor}
                       y={0}
                       width={Math.max(w, 1)}
                       height={y.bandwidth()}
@@ -126,7 +130,7 @@ export function TopRiskImagesBar({ topRiskImages, dataset, width, height }: TopR
                   return seg;
                 })}
                 <text
-                  x={LABEL_WIDTH + x(r.weightedScore) + 8}
+                  x={labelW + x(r.weightedScore) + 8}
                   y={y.bandwidth() / 2}
                   dy="0.35em"
                   fill={theme.palette.text.secondary}

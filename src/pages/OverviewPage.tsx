@@ -145,6 +145,16 @@ function renderWidget(id: string, dataset: Dataset, accent: (k: 'critical' | 'hi
   }
 }
 
+/**
+ * Widgets whose body is a D3 chart sized by `ResponsiveChart height="fill"`.
+ * They only render once their container reports a non-zero height, so the
+ * narrow layout has to hand them a resolved one (see the stack branch below).
+ * 'overlap' is deliberately absent — it is plain DOM and sizes to content.
+ */
+const MEASURED_CHART_WIDGETS = new Set([
+  'severity-donut', 'top-images', 'risk-factors', 'scatter', 'trend',
+]);
+
 const WIDGET_TITLE: Record<string, string> = {
   'stat-occurrences': 'Occurrences stat',
   'stat-cves': 'Unique CVEs stat',
@@ -297,6 +307,10 @@ export default function OverviewPage(): ReactNode {
 
   const accent = (k: 'critical' | 'high'): string => theme.palette.severity[k];
 
+  /** User-composed widgets are charts too, so they need the same treatment. */
+  const isMeasuredChart = (id: string): boolean =>
+    MEASURED_CHART_WIDGETS.has(id) || customById.has(id);
+
   const renderCard = (id: string): ReactNode => {
     const custom = customById.get(id);
     const body = custom !== undefined ? (
@@ -448,13 +462,28 @@ export default function OverviewPage(): ReactNode {
           ))}
         </Grid>
       ) : (
-        // Tablet: customization is a desktop affordance; render the saved
-        // order as a simple stack.
-        <Stack spacing={2}>
+        // Below md the drag-and-drop grid is replaced by a flow layout:
+        // customization is a desktop affordance, and twelve columns of ~35px
+        // are meaningless on a phone. Stat cards pair two-across so a
+        // half-screen window isn't six full-width rows holding one number each.
+        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
           {[...visibleLayout].sort((a, b) => a.y - b.y || a.x - b.x).map((l) => (
-            <Box key={l.i} sx={{ minHeight: l.h > 2 ? 320 : undefined }}>{renderCard(l.i)}</Box>
+            <Box
+              key={l.i}
+              sx={{
+                gridColumn: l.i.startsWith('stat-') ? 'span 1' : '1 / -1',
+                // Explicit height, not minHeight. ChartCard is height:100%, and
+                // height:100% against a min-height-only parent resolves to auto
+                // — which collapsed the chart body to zero, so ResponsiveChart
+                // measured 0 and rendered null. Every D3 card below 900px was
+                // an empty box with a title on it.
+                height: isMeasuredChart(l.i) ? { xs: 320, sm: 380 } : 'auto',
+              }}
+            >
+              {renderCard(l.i)}
+            </Box>
           ))}
-        </Stack>
+        </Box>
       )}
 
       <AddChartDialog open={addOpen} onClose={() => setAddOpen(false)} />

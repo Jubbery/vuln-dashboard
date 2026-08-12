@@ -45,7 +45,11 @@ export function SeverityDonut({ bySeverity, width, height, onSelect }: SeverityD
   );
   const total = useMemo(() => data.reduce((sum, d) => sum + d.count, 0), [data]);
 
-  const r = Math.min(width, height) / 2 - 4;
+  // Below ~340px the side-by-side donut+legend starves both — stack instead
+  // (mobile audit). The ring shrinks so ring + legend fit the height.
+  const narrow = width < 340;
+  const side = narrow ? Math.min(width, Math.max(120, height - 96)) : Math.min(width, height);
+  const r = side / 2 - 4;
   const arcs = useMemo(
     () => d3.pie<Slice>().value((d) => d.count).sort(null)(data),
     [data],
@@ -73,15 +77,15 @@ export function SeverityDonut({ bySeverity, width, height, onSelect }: SeverityD
   };
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, height: '100%' }}>
+    <Box sx={{ display: 'flex', flexDirection: narrow ? 'column' : 'row', alignItems: 'center', justifyContent: 'center', gap: narrow ? 1 : 2, height: '100%' }}>
       <Box sx={{ position: 'relative', flexShrink: 0 }}>
         <svg
-          width={Math.min(width, height)}
-          height={height}
+          width={side}
+          height={narrow ? side : height}
           role="img"
           aria-label={`Severity distribution: ${data.map((d) => `${SEVERITY_LABEL[d.severity]} ${formatNumber(d.count)}`).join(', ')}`}
         >
-          <g transform={`translate(${Math.min(width, height) / 2},${height / 2})`}>
+          <g transform={`translate(${side / 2},${(narrow ? side : height) / 2})`}>
             {arcs.map((a) => (
               <path
                 key={a.data.severity}
@@ -115,7 +119,7 @@ export function SeverityDonut({ bySeverity, width, height, onSelect }: SeverityD
             </text>
           </g>
         </svg>
-        <ChartTooltip tip={tip} width={Math.min(width, height)} />
+        <ChartTooltip tip={tip} width={side} />
       </Box>
       <Stack spacing={0.75} sx={{ minWidth: 0 }}>
         {data.map((d) => (
