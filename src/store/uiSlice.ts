@@ -241,6 +241,28 @@ const uiSlice = createSlice({
         layout: state.overview.layout.map((l) => byId.get(l.i) ?? l),
       };
     },
+    /** Reorder without dragging (narrow screens): swap this widget's grid
+     *  slot with its neighbour in visual order. Positions swap, sizes stay —
+     *  RGL's compaction resolves any overlap on the desktop grid. */
+    widgetMoved(state, action: PayloadAction<{ id: string; dir: -1 | 1 }>) {
+      const { id, dir } = action.payload;
+      const visible = state.overview.layout
+        .filter((l) => !state.overview.hidden.includes(l.i))
+        .sort((a, b) => a.y - b.y || a.x - b.x);
+      const idx = visible.findIndex((l) => l.i === id);
+      const swapIdx = idx + dir;
+      if (idx === -1 || swapIdx < 0 || swapIdx >= visible.length) return;
+      const a = visible[idx];
+      const b = visible[swapIdx];
+      if (a === undefined || b === undefined) return;
+      const aPos = { x: a.x, y: a.y };
+      const bPos = { x: b.x, y: b.y };
+      state.overview = {
+        ...state.overview,
+        layout: state.overview.layout.map((l) =>
+          l.i === a.i ? { ...l, ...bPos } : l.i === b.i ? { ...l, ...aPos } : l),
+      };
+    },
     widgetHiddenToggled(state, action: PayloadAction<string>) {
       const id = action.payload;
       state.overview = {
@@ -299,6 +321,7 @@ export const {
   sidebarToggled, sidebarClosed, pageSizeSet, pageSet, sortSet, explorerScrollSaved,
   gridDensitySet, compareToggled, compareCleared,
   columnVisibilityToggled, columnMoved, columnsReset, themeModeToggled,
-  overviewLayoutChanged, widgetHiddenToggled, customWidgetAdded, customWidgetRemoved, overviewReset,
+  overviewLayoutChanged, widgetHiddenToggled, widgetMoved, customWidgetAdded, customWidgetRemoved,
+  overviewReset,
 } = uiSlice.actions;
 export default uiSlice.reducer;

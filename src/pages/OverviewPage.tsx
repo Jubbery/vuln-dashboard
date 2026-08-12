@@ -21,6 +21,8 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import AddchartIcon from '@mui/icons-material/Addchart';
 import CloseIcon from '@mui/icons-material/Close';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import DashboardCustomizeIcon from '@mui/icons-material/DashboardCustomize';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import DoneIcon from '@mui/icons-material/Done';
@@ -36,8 +38,8 @@ import type { Dataset } from '../types/vulnerability.ts';
 import { useDataset } from '../data/useDataset.ts';
 import { useAppDispatch, useAppSelector } from '../store/index.ts';
 import {
-  overviewLayoutChanged, widgetHiddenToggled, customWidgetAdded, customWidgetRemoved,
-  overviewReset, type BreakdownDimension, type BreakdownForm, type CustomWidget,
+  overviewLayoutChanged, widgetHiddenToggled, widgetMoved, customWidgetAdded, customWidgetRemoved,
+  overviewReset, type BreakdownDimension, type BreakdownForm,
 } from '../store/uiSlice.ts';
 import { StatCard } from '../components/primitives/StatCard.tsx';
 import { ChartCard } from '../components/charts/ChartCard.tsx';
@@ -311,7 +313,13 @@ export default function OverviewPage(): ReactNode {
   const isMeasuredChart = (id: string): boolean =>
     MEASURED_CHART_WIDGETS.has(id) || customById.has(id);
 
-  const renderCard = (id: string): ReactNode => {
+  /** Visual order — drives the narrow-screen stack and its reorder arrows. */
+  const orderedIds = useMemo(
+    () => [...visibleLayout].sort((a, b) => a.y - b.y || a.x - b.x).map((l) => l.i),
+    [visibleLayout],
+  );
+
+  const renderCard = (id: string, stack = false): ReactNode => {
     const custom = customById.get(id);
     const body = custom !== undefined ? (
       <ChartCard title={custom.title} subtitle={`${DIMENSION_LABEL[custom.dimension]} · from precomputed aggregates`}>
@@ -334,8 +342,11 @@ export default function OverviewPage(): ReactNode {
           outline: (t) => `2px dashed ${alpha(t.palette.primary.main, 0.4)}`,
           outlineOffset: '-2px',
           borderRadius: 2.5,
-          cursor: 'grab',
-          '&:active': { cursor: 'grabbing' },
+          // Drag is a pointer affordance — arrows do the work on touch.
+          ...(!stack && {
+            cursor: 'grab',
+            '&:active': { cursor: 'grabbing' },
+          }),
           '&:hover': { outline: (t) => `2px dashed ${alpha(t.palette.primary.main, 0.8)}` },
         }),
       }}>
@@ -343,7 +354,7 @@ export default function OverviewPage(): ReactNode {
         <Box sx={{ height: '100%', ...(editing && { pointerEvents: 'none', userSelect: 'none' }) }}>
           {body}
         </Box>
-        {editing && (
+        {editing && !stack && (
           <DragIndicatorIcon sx={{
             position: 'absolute', top: 6, left: 4, fontSize: 16,
             color: 'text.secondary', opacity: 0.8, pointerEvents: 'none',
@@ -354,6 +365,28 @@ export default function OverviewPage(): ReactNode {
             position: 'absolute', top: 4, right: 4, display: 'flex', gap: 0.25,
             bgcolor: 'background.paper', borderRadius: 1.5, border: 1, borderColor: 'divider', px: 0.25,
           }}>
+            {stack && (
+              <>
+                <Tooltip title="Move up">
+                  <span>
+                    <IconButton size="small" aria-label={`Move ${titleOf(id)} up`}
+                      disabled={orderedIds[0] === id}
+                      onClick={() => dispatch(widgetMoved({ id, dir: -1 }))}>
+                      <ArrowUpwardIcon sx={{ fontSize: 15 }} />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+                <Tooltip title="Move down">
+                  <span>
+                    <IconButton size="small" aria-label={`Move ${titleOf(id)} down`}
+                      disabled={orderedIds[orderedIds.length - 1] === id}
+                      onClick={() => dispatch(widgetMoved({ id, dir: 1 }))}>
+                      <ArrowDownwardIcon sx={{ fontSize: 15 }} />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              </>
+            )}
             <Tooltip title="Hide widget">
               <IconButton size="small" aria-label={`Hide ${titleOf(id)}`}
                 onClick={() => dispatch(widgetHiddenToggled(id))}>
@@ -433,11 +466,13 @@ export default function OverviewPage(): ReactNode {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1, flexWrap: 'wrap' }}>
         <Typography variant="h1">Overview</Typography>
         <Box sx={{ flex: 1 }} />
-        {wide && toolbar}
+        {toolbar}
       </Box>
       {editing && (
         <Typography variant="caption" component="p" sx={{ mb: 1 }}>
-          drag to move · drag edges to resize · changes save automatically
+          {wide
+            ? 'drag to move · drag edges to resize · changes save automatically'
+            : 'use the arrows to reorder · changes save automatically'}
         </Typography>
       )}
 
@@ -463,24 +498,25 @@ export default function OverviewPage(): ReactNode {
         </Grid>
       ) : (
         // Below md the drag-and-drop grid is replaced by a flow layout:
-        // customization is a desktop affordance, and twelve columns of ~35px
-        // are meaningless on a phone. Stat cards pair two-across so a
-        // half-screen window isn't six full-width rows holding one number each.
+        // twelve columns of ~35px are meaningless on a phone. Customization
+        // stays available — drag is swapped for explicit reorder arrows.
+        // Stat cards pair two-across so a half-screen window isn't six
+        // full-width rows holding one number each.
         <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-          {[...visibleLayout].sort((a, b) => a.y - b.y || a.x - b.x).map((l) => (
+          {orderedIds.map((id) => (
             <Box
-              key={l.i}
+              key={id}
               sx={{
-                gridColumn: l.i.startsWith('stat-') ? 'span 1' : '1 / -1',
+                gridColumn: id.startsWith('stat-') ? 'span 1' : '1 / -1',
                 // Explicit height, not minHeight. ChartCard is height:100%, and
                 // height:100% against a min-height-only parent resolves to auto
                 // — which collapsed the chart body to zero, so ResponsiveChart
                 // measured 0 and rendered null. Every D3 card below 900px was
                 // an empty box with a title on it.
-                height: isMeasuredChart(l.i) ? { xs: 320, sm: 380 } : 'auto',
+                height: isMeasuredChart(id) ? { xs: 320, sm: 380 } : 'auto',
               }}
             >
-              {renderCard(l.i)}
+              {renderCard(id, true)}
             </Box>
           ))}
         </Box>
