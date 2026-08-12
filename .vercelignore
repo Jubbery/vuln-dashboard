@@ -2,3 +2,4 @@
 # the committed 44MB sample (see .env.production). Without this exclusion the
 # CLI upload trips Vercel's 100MB per-file limit.
 public/ui_demo.json
+package-lock.json

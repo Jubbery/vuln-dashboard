@@ -5,3 +5,15 @@ dist/
 
 # The 270MB scan file is never committed — see README for placement.
 public/ui_demo.json
+
+# Vercel CLI scratch
+.vercel
+
+# Local env overrides only. NOT a blanket `.env*`: .env.production is tracked
+# on purpose — it points production builds at the committed sample, and the
+# deploy breaks without it.
+.env.local
+.env*.local
+
+# Not committed for this exercise; see README note on reproducible installs.
+package-lock.json
