@@ -20,6 +20,7 @@ import ViewColumnIcon from '@mui/icons-material/ViewColumn';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { alpha, useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Occurrence } from '../../types/vulnerability.ts';
@@ -58,6 +59,8 @@ const COLUMN_LABELS: Record<string, string> = {
  *  reorder, so ordering is explicit up/down controls in the same menu. */
 function ColumnsMenu(): ReactNode {
   const dispatch = useAppDispatch();
+  const theme = useTheme();
+  const narrow = useMediaQuery(theme.breakpoints.down('sm'));
   const columns = useAppSelector((s) => s.ui.columns);
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const customized = columns.hidden.length > 0;
@@ -74,6 +77,12 @@ function ColumnsMenu(): ReactNode {
         Columns{customized ? ` (${columns.order.length - columns.hidden.length})` : ''}
       </Button>
       <Menu anchorEl={anchor} open={anchor !== null} onClose={() => setAnchor(null)}>
+        {narrow && (
+          <Typography variant="caption" component="p" sx={{ px: 2, py: 1, maxWidth: 240 }}>
+            Phones show severity, CVE, and CVSS — these choices apply on wider
+            screens. Tap a row for the full record.
+          </Typography>
+        )}
         {columns.order.map((field, i) => {
           const visible = !columns.hidden.includes(field);
           return (

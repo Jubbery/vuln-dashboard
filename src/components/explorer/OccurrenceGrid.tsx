@@ -5,7 +5,8 @@ import IconButton from '@mui/material/IconButton';
 import Link from '@mui/material/Link';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { alpha } from '@mui/material/styles';
+import { alpha, useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import {
   DataGrid,
   type GridColDef,
@@ -126,14 +127,28 @@ function NoRowsOverlay(): ReactNode {
 }
 const GRID_SLOTS = { noRowsOverlay: NoRowsOverlay };
 
+/** What still fits on a phone. Saved preferences express intent; the
+ *  viewport applies its own constraint on top — the full record is one tap
+ *  away in the peek drawer, which beats nine columns of side-scrolling. */
+const MOBILE_FIELDS = new Set(['severity', 'cve', 'cvss']);
+
 /** Reorder + filter the customizable columns per saved prefs. The compare
  *  column (field 'compare') stays pinned first. */
-function applyColumnPrefs(cols: GridColDef<Occurrence>[], prefs: ColumnPrefs): GridColDef<Occurrence>[] {
+function applyColumnPrefs(
+  cols: GridColDef<Occurrence>[],
+  prefs: ColumnPrefs,
+  narrow: boolean,
+): GridColDef<Occurrence>[] {
   const byField = new Map(cols.map((c) => [c.field, c]));
   const pinned = byField.get('compare');
   const ordered = prefs.order
-    .filter((f) => !prefs.hidden.includes(f))
-    .flatMap((f) => { const c = byField.get(f); return c === undefined ? [] : [c]; });
+    .filter((f) => !prefs.hidden.includes(f) && (!narrow || MOBILE_FIELDS.has(f)))
+    .flatMap((f) => {
+      const c = byField.get(f);
+      if (c === undefined) return [];
+      // Let CVE absorb the leftover width instead of a fixed 168px.
+      return [narrow && c.field === 'cve' ? { ...c, flex: 1, minWidth: 130, width: undefined } : c];
+    });
   return pinned === undefined ? ordered : [pinned, ...ordered];
 }
 
@@ -156,9 +171,11 @@ export function OccurrenceGrid({ rows, topRisks = [], onRowActivate }: Occurrenc
   const savedScrollTop = useAppSelector((s) => s.ui.explorerScrollTop);
 
   const columnPrefs = useAppSelector((s) => s.ui.columns);
+  const theme = useTheme();
+  const narrow = useMediaQuery(theme.breakpoints.down('sm'));
   const columns = useMemo(
-    () => applyColumnPrefs(buildColumns(dataset, compareCves, dispatch), columnPrefs),
-    [dataset, compareCves, dispatch, columnPrefs],
+    () => applyColumnPrefs(buildColumns(dataset, compareCves, dispatch), columnPrefs, narrow),
+    [dataset, compareCves, dispatch, columnPrefs, narrow],
   );
   const topRiskCves = useMemo(() => new Set(topRisks.map((r) => r.cve)), [topRisks]);
 
