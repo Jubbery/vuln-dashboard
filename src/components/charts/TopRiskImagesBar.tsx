@@ -43,7 +43,9 @@ export function TopRiskImagesBar({ topRiskImages, dataset, width, height }: TopR
 
   // Adaptive label gutter: fixed 190px starved the bars below ~500px wide
   // (mobile/half-screen audit) — labels yield space before bars do.
-  const labelW = Math.min(LABEL_WIDTH, Math.max(96, width * 0.34));
+  // Narrow viewports give labels a bigger share: bars stay comparable at any
+  // length, but a name truncated past recognition is worthless.
+  const labelW = Math.min(LABEL_WIDTH, Math.max(96, width * (width < 480 ? 0.46 : 0.34)));
   // Budget characters from the actual gutter, not a fixed count: glyph widths
   // vary enough that a flat 15-char cap still overflowed and clipped the
   // leading characters of wider labels.

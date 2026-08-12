@@ -39,7 +39,7 @@ export function RiskFactorBar({ byRiskFactor, totalOccurrences, width, height }:
   );
 
   // Adaptive label gutter (mobile/half-screen audit): labels shrink before bars.
-  const labelW = Math.min(LABEL_WIDTH, Math.max(110, width * 0.38));
+  const labelW = Math.min(LABEL_WIDTH, Math.max(110, width * (width < 480 ? 0.48 : 0.38)));
   // Character budget derived from the gutter (see TopRiskImagesBar).
   const labelFont = labelW < 160 ? 11 : 12;
   const maxChars = Math.max(8, Math.floor((labelW - 12) / (labelFont * 0.66)));
