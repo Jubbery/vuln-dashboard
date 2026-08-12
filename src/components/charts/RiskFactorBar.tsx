@@ -7,7 +7,7 @@ import { useAppDispatch } from '../../store/index.ts';
 import { riskFactorsSet } from '../../store/filtersSlice.ts';
 import { EmptyState } from '../primitives/EmptyState.tsx';
 import { ChartTooltip, useChartTooltip } from './ChartTooltip.tsx';
-import { formatCompact, formatNumber, formatPercent } from '../../utils/format.ts';
+import { formatCompact, formatNumber, formatPercent, truncateMiddle } from '../../utils/format.ts';
 
 export interface RiskFactorBarProps {
   byRiskFactor: Record<string, number>;
@@ -59,7 +59,9 @@ export function RiskFactorBar({ byRiskFactor, totalOccurrences, width, height }:
     return <EmptyState title="No risk factors" description="No risk-factor data available." />;
   }
 
-  const truncate = (s: string): string => (s.length > maxChars ? `${s.slice(0, maxChars - 1)}…` : s);
+  // Middle truncation: "Exploit exists - POC" and "…- in the wild" differ at
+  // the tail, so trailing ellipsis would render them identically.
+  const truncate = (s: string): string => truncateMiddle(s, maxChars);
 
   return (
     <>

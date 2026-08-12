@@ -19,3 +19,17 @@ export const formatBytes = (n: number): string => {
 
 export const formatPercent = (part: number, whole: number): string =>
   whole === 0 ? '0%' : `${((part / whole) * 100).toFixed(part / whole < 0.1 ? 1 : 0)}%`;
+
+/**
+ * Ellipsis in the middle, keeping both ends. Chart labels in this data share
+ * long prefixes ("app_…") and differ at the tail ("…:S90.44.1"), so trailing
+ * truncation makes distinct rows look identical — this keeps them tellable
+ * apart at narrow widths.
+ */
+export const truncateMiddle = (s: string, max: number): string => {
+  if (s.length <= max) return s;
+  if (max <= 3) return `${s.slice(0, Math.max(1, max))}…`;
+  const head = Math.ceil((max - 1) / 2);
+  const tail = Math.floor((max - 1) / 2);
+  return `${s.slice(0, head)}…${s.slice(s.length - tail)}`;
+};

@@ -8,7 +8,7 @@ import { SEVERITY_ORDER, SEVERITY_LABEL } from '../../theme/severity.ts';
 import { SEVERITY_WEIGHT } from '../../types/vulnerability.ts';
 import { EmptyState } from '../primitives/EmptyState.tsx';
 import { ChartTooltip, useChartTooltip } from './ChartTooltip.tsx';
-import { formatNumber } from '../../utils/format.ts';
+import { formatNumber, truncateMiddle } from '../../utils/format.ts';
 
 export interface TopRiskImagesBarProps {
   topRiskImages: Aggregates['topRiskImages'];
@@ -20,11 +20,12 @@ export interface TopRiskImagesBarProps {
 const MARGIN = { top: 4, right: 48, bottom: 4, left: 0 };
 const LABEL_WIDTH = 190;
 
-/** "repo-tail:version" — full registry path goes in the tooltip. */
+/** "repo-tail:version" — full registry path goes in the tooltip. Middle
+ *  truncation keeps the version visible, which is what distinguishes two
+ *  builds of the same image. */
 function shortLabel(name: string, version: string, maxChars: number): string {
   const tail = name.split('/').pop() ?? name;
-  const label = `${tail}:${version}`;
-  return label.length > maxChars ? `${label.slice(0, maxChars - 1)}…` : label;
+  return truncateMiddle(`${tail}:${version}`, maxChars);
 }
 
 /**
