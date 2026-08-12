@@ -32,6 +32,7 @@ function buildColumns(
   dataset: Dataset,
   compareCves: string[],
   dispatch: AppDispatch,
+  narrow: boolean,
 ): GridColDef<Occurrence>[] {
   return [
     {
@@ -67,7 +68,9 @@ function buildColumns(
       width: 132,
       // Occurrence rows deliberately don't store cvss — catalog lookup (max
       // observed across occurrences; per-CVE conflicts documented in Phase 0).
-      renderCell: (p) => <CvssScoreBar score={dataset.cveCatalog.get(p.row.cve)?.cvss ?? 0} />,
+      renderCell: (p) => (
+        <CvssScoreBar score={dataset.cveCatalog.get(p.row.cve)?.cvss ?? 0} width={narrow ? 38 : 64} />
+      ),
     },
     { field: 'packageName', headerName: 'Package', flex: 1, minWidth: 150 },
     { field: 'packageVersion', headerName: 'Version', width: 130, sortable: false },
@@ -180,7 +183,7 @@ export function OccurrenceGrid({ rows, topRisks = [], onRowActivate }: Occurrenc
   const theme = useTheme();
   const narrow = useMediaQuery(theme.breakpoints.down('sm'));
   const columns = useMemo(
-    () => applyColumnPrefs(buildColumns(dataset, compareCves, dispatch), columnPrefs, narrow),
+    () => applyColumnPrefs(buildColumns(dataset, compareCves, dispatch, narrow), columnPrefs, narrow),
     [dataset, compareCves, dispatch, columnPrefs, narrow],
   );
   const topRiskCves = useMemo(() => new Set(topRisks.map((r) => r.cve)), [topRisks]);
