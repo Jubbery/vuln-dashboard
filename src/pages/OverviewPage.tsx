@@ -42,6 +42,7 @@ import {
   overviewReset, type BreakdownDimension, type BreakdownForm,
 } from '../store/uiSlice.ts';
 import { StatCard } from '../components/primitives/StatCard.tsx';
+import { SampleDataNotice } from '../components/primitives/SampleDataNotice.tsx';
 import { ChartCard } from '../components/charts/ChartCard.tsx';
 import { ResponsiveChart } from '../components/charts/ResponsiveChart.tsx';
 import { SeverityDonut } from '../components/charts/SeverityDonut.tsx';
@@ -476,6 +477,7 @@ export default function OverviewPage(): ReactNode {
           height: 7,
         },
       }} />
+      <SampleDataNotice />
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1, flexWrap: 'wrap' }}>
         <Typography variant="h1">Overview</Typography>
         <Box sx={{ flex: 1 }} />

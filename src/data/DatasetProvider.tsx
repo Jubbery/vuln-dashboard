@@ -19,6 +19,8 @@ import { ingestStarted, ingestProgress, ingestReady, ingestFailed } from '../sto
  * hosting limits) — the ingest path is byte-for-byte identical either way.
  */
 const DATA_URL: string = import.meta.env.VITE_DATA_URL ?? '/ui_demo.json';
+/** The deployed build points at the committed sample; local dev doesn't. */
+const SERVING_SAMPLE = DATA_URL.includes('sample');
 
 /** Module-level singleton. Never mutated after DONE; replaced wholesale when
  *  the user loads a different scan file. */
@@ -32,6 +34,12 @@ export interface DatasetControl {
   /** Re-ingest from a user-picked scan file (email-adjacent feature: lets the
    *  deployed sample build run the full 270MB scan entirely client-side). */
   loadFile: (file: File) => void;
+  /** True while showing the committed sample rather than a full scan — the
+   *  deployed build. Drives the "load your own file" notice so a reviewer
+   *  isn't left thinking 28k records is all there is. */
+  isSample: boolean;
+  /** Name of a user-loaded file, once one has been ingested. */
+  loadedFileName: string | null;
 }
 export const DatasetControlContext = createContext<DatasetControl | null>(null);
 
@@ -44,6 +52,7 @@ export function useDatasetControl(): DatasetControl {
 export function DatasetProvider({ children }: { children: ReactNode }): ReactNode {
   const dispatch = useAppDispatch();
   const [dataset, setDataset] = useState<Dataset | null>(datasetSingleton);
+  const [loadedFileName, setLoadedFileName] = useState<string | null>(null);
   const startedRef = useRef(false);
   const workerRef = useRef<Worker | null>(null);
 
@@ -99,9 +108,12 @@ export function DatasetProvider({ children }: { children: ReactNode }): ReactNod
     loadFile: (file: File) => {
       datasetSingleton = null;
       setDataset(null);   // back to the gate; RouterProvider unmounts
+      setLoadedFileName(file.name);
       start({ type: 'START_FILE', file });
     },
-  }), [start]);
+    isSample: SERVING_SAMPLE && loadedFileName === null,
+    loadedFileName,
+  }), [start, loadedFileName]);
 
   return (
     <DatasetControlContext.Provider value={control}>

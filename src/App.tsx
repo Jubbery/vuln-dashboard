@@ -76,6 +76,14 @@ export default function App(): ReactNode {
           percent={pct}
           detail={`${formatBytes(ingestion.bytesRead)} of ${formatBytes(ingestion.totalBytes)} — streamed off the main thread`}
         />
+        {/* The first screen a reviewer sees — say up front that they can
+            bring the full scan, not just the deployed sample. */}
+        <Box sx={{ textAlign: 'center', pb: 2 }}>
+          <ScanFilePicker label="Load your own ui_demo.json" />
+          <Typography variant="caption" component="p" sx={{ mt: 1, px: 3 }}>
+            Parsed entirely in your browser — the file is never uploaded anywhere.
+          </Typography>
+        </Box>
       </GateFrame>
     );
   }
