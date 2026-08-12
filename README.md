@@ -22,7 +22,7 @@ packages, and CVEs — with the main thread never blocking.
 - [Handling 270MB](#handling-270mb)
 - [Data model](#data-model)
 - [Technical decisions](#technical-decisions)
-- [Design](#design)
+- [Documentation map](#documentation-map)
 - [Accessibility & responsive](#accessibility--responsive)
 - [Testing](#testing)
 - [Production considerations](#production-considerations)
@@ -93,6 +93,9 @@ before any UI code was written — see [`docs/PHASE0-FINDINGS.md`](docs/PHASE0-F
 
 ## What it does
 
+> Looking for a specific assignment requirement? **[docs/REQUIREMENTS.md](docs/REQUIREMENTS.md)**
+> maps every line of the brief to its implementation, code path, and rationale.
+
 | Route | View |
 |---|---|
 | `/` | Overview — six stat cards and six visualizations |
@@ -109,6 +112,19 @@ of records — the scanner's own dismissal verdicts, split between manual
 and **AI Analysis** buttons each exclude one verdict. Each button shows how
 many records it would remove *within the current filter context* (not
 globally), and an impact bar animates the shown/removed proportions on toggle.
+
+**Search with live suggestions.** One field searches CVE IDs and package names
+at once, with grouped autocomplete drawn from the deduped catalog and the
+distinct package vocabulary collected at ingest — suggestions from two
+characters, and free-text substring search still works if you ignore them.
+Debounced with a local echo so typing never stalls.
+
+**Customizable Overview.** The default dashboard is a *default*: widgets drag,
+snap, resize, hide and restore on a 12-column grid, and a builder composes new
+charts from seven data dimensions × three chart forms with a live preview.
+Layout, hidden set and custom charts persist. The builder reads only
+precomputed aggregates — user-composed charts can't break the no-aggregation-
+on-the-main-thread rule.
 
 **Fix first.** The Explorer continuously recomputes the most dangerous distinct
 CVEs in the *current* view — actively-exploited first, then severity, then
@@ -244,6 +260,14 @@ normally in reconciliation and MUI theming.
 Every chart takes `width`/`height` props from a `ResponsiveChart` wrapper
 (`ResizeObserver`), reads colors from the theme, and handles the empty case.
 
+### Code splitting and lazy loading
+
+Every route except the landing Overview is a `React.lazy` chunk behind a single
+`Suspense` boundary in the layout, so the 664KB DataGrid bundle downloads only
+when someone opens the Explorer. `manualChunks` pins `react-vendor`, `mui`,
+`datagrid` and `d3` into stable vendor bundles, so shipping an app change
+doesn't invalidate a returning user's cached libraries.
+
 ### Virtualization *and* pagination
 
 MUI X DataGrid virtualizes rows within a page; pagination caps the working set
@@ -265,12 +289,15 @@ both background layers: **all ≥ 5.38:1**, comfortably past WCAG AA.
 
 ---
 
-## Design
+## Documentation map
 
-The UI's reasoning — the insight-forward principle, the severity color scale
-(and why low is blue, not green), the dark console aesthetic, the interaction
-model, and what the design audit changed — is documented in
-[docs/DESIGN.md](docs/DESIGN.md).
+| Document | What it answers |
+|---|---|
+| **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** | Component hierarchy, end-to-end data flow, layer responsibilities, state ownership, shared hooks, where each performance technique lives |
+| **[docs/DESIGN.md](docs/DESIGN.md)** | Why the UI looks and behaves as it does — insight-forward principle, severity scale semantics, interaction model, responsive strategy, a11y as design |
+| **[docs/REQUIREMENTS.md](docs/REQUIREMENTS.md)** | Every assignment requirement mapped to its implementation, code path, and documentation — including the six places creativity was asked for |
+| **[docs/PRESENTATION.md](docs/PRESENTATION.md)** | Walkthrough of the approach, and a five-minute demo path |
+| **[docs/PHASE0-FINDINGS.md](docs/PHASE0-FINDINGS.md)** | The data reconnaissance pass, before any code was written |
 
 ## Accessibility & responsive
 
