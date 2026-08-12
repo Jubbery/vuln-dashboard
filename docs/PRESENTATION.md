@@ -162,6 +162,10 @@ split for the remaining light-mode chart edge cases.
 
 ### Demo path (5 minutes)
 
+0. **Load the real file** — the deployed build opens on a 44MB sample and says
+   so; hit the upload button in the header, pick `ui_demo.json`, and the full
+   270MB scan ingests client-side. Everything below is then running on all
+   171,711 records.
 1. **Load** — watch the real progress percentage; note the UI stays responsive.
 2. **Overview** — stat cards, then the manual-vs-AI overlap card. Then hit
    *Customize*: drag a widget, resize it, add a "CVSS score bands" column chart

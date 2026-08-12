@@ -6,9 +6,20 @@ packages, and CVEs — with the main thread never blocking.
 
 171,711 vulnerability occurrences · 1,228 unique CVEs · 756 images · 501 repos
 
-**Live demo:** <https://vuln-dash.vercel.app> — serves the committed 44MB sample
-(4 groups · 69 repos · 28,375 records) through the identical ingest path; see
-[Setup](#setup) for the constraint and how to run the full 270MB file locally.
+**Live demo:** <https://vuln-dash.vercel.app>
+
+> ### 📂 Reviewers: run it on the real file
+>
+> The live demo serves a committed **44MB sample** (4 groups · 69 repos ·
+> 28,375 records) because the full 270MB scan exceeds free-tier hosting limits.
+>
+> **Use the upload button in the app header to load your own `ui_demo.json`** —
+> the full 171,711-record scan, in the deployed app, no install required. It
+> streams through the identical worker pipeline (same tokenizer, same
+> normalizer, same aggregation) and is **parsed entirely in your browser; the
+> file is never uploaded anywhere**. The app says so on screen too.
+>
+> Prefer running it locally? See [Setup](#setup) — three commands.
 
 ![Overview page — stat cards, severity donut, and top riskiest images over the full 270MB scan](docs/screenshot.jpg)
 

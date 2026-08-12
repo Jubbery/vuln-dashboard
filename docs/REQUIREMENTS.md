@@ -167,6 +167,6 @@ same component is reused scoped to a group or repo, where it produces a
 | Deliverable | Status |
 |---|---|
 | GitHub repository with complete source | <https://github.com/Jubbery/vuln-dashboard> |
-| Deployed application | <https://vuln-dash.vercel.app> — serves the committed 44MB sample through the identical ingest path; the in-app upload button runs the full 270MB file client-side |
+| Deployed application | <https://vuln-dash.vercel.app> — serves a committed 44MB sample through the identical ingest path. **Reviewers can load the real `ui_demo.json` via the upload button in the app header** and exercise the full 171,711-record scan in the deployed build; parsing happens entirely in the browser and the file is never uploaded. The app surfaces this itself with an on-screen notice |
 | Documentation of architecture decisions and component structure | [README.md](../README.md) · [ARCHITECTURE.md](ARCHITECTURE.md) · [DESIGN.md](DESIGN.md) · [PHASE0-FINDINGS.md](PHASE0-FINDINGS.md) |
 | Brief presentation of approach and implementation | [PRESENTATION.md](PRESENTATION.md) |
