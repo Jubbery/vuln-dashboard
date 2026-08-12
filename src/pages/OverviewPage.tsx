@@ -334,14 +334,17 @@ export default function OverviewPage(): ReactNode {
       </ChartCard>
     ) : renderWidget(id, dataset, accent);
 
+    const controlsFirst = stack && editing;
     return (
       <Box sx={{
         position: 'relative',
         height: '100%',
+        ...(controlsFirst && { display: 'flex', flexDirection: 'column' }),
         ...(editing && {
           outline: (t) => `2px dashed ${alpha(t.palette.primary.main, 0.4)}`,
           outlineOffset: '-2px',
           borderRadius: 2.5,
+          p: stack ? 0.75 : 0,
           // Drag is a pointer affordance — arrows do the work on touch.
           ...(!stack && {
             cursor: 'grab',
@@ -351,7 +354,11 @@ export default function OverviewPage(): ReactNode {
         }),
       }}>
         {/* Charts go inert while editing so drags never fight tooltips/links. */}
-        <Box sx={{ height: '100%', ...(editing && { pointerEvents: 'none', userSelect: 'none' }) }}>
+        <Box sx={{
+          height: controlsFirst ? 'auto' : '100%',
+          ...(controlsFirst && { flex: 1, minHeight: 0, order: 2 }),
+          ...(editing && { pointerEvents: 'none', userSelect: 'none' }),
+        }}>
           {body}
         </Box>
         {editing && !stack && (
@@ -362,8 +369,14 @@ export default function OverviewPage(): ReactNode {
         )}
         {editing && (
           <Box className="rgl-nodrag" sx={{
-            position: 'absolute', top: 4, right: 4, display: 'flex', gap: 0.25,
-            bgcolor: 'background.paper', borderRadius: 1.5, border: 1, borderColor: 'divider', px: 0.25,
+            // Stack mode reserves a row above the card (see below) so controls
+            // never cover a stat label; the desktop grid floats them instead.
+            ...(stack
+              ? { display: 'flex', gap: 0.25, justifyContent: 'flex-end', mb: 0.5, order: 1 }
+              : {
+                  position: 'absolute', top: 4, right: 4, display: 'flex', gap: 0.25,
+                  bgcolor: 'background.paper', borderRadius: 1.5, border: 1, borderColor: 'divider', px: 0.25,
+                }),
           }}>
             {stack && (
               <>
