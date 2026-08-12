@@ -43,7 +43,11 @@ export function TopRiskImagesBar({ topRiskImages, dataset, width, height }: TopR
   // Adaptive label gutter: fixed 190px starved the bars below ~500px wide
   // (mobile/half-screen audit) — labels yield space before bars do.
   const labelW = Math.min(LABEL_WIDTH, Math.max(96, width * 0.34));
-  const maxChars = labelW < 150 ? 15 : 26;
+  // Budget characters from the actual gutter, not a fixed count: glyph widths
+  // vary enough that a flat 15-char cap still overflowed and clipped the
+  // leading characters of wider labels.
+  const labelFont = labelW < 150 ? 11 : 12;
+  const maxChars = Math.max(8, Math.floor((labelW - 12) / (labelFont * 0.66)));
   const innerW = Math.max(0, width - MARGIN.left - MARGIN.right - labelW);
   const innerH = height - MARGIN.top - MARGIN.bottom;
 
@@ -107,7 +111,7 @@ export function TopRiskImagesBar({ topRiskImages, dataset, width, height }: TopR
                   dy="0.35em"
                   textAnchor="end"
                   fill={theme.palette.text.primary}
-                  fontSize={12}
+                  fontSize={labelFont}
                 >
                   {shortLabel(repoName, img.version, maxChars)}
                 </text>
