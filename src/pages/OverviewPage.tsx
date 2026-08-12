@@ -515,7 +515,13 @@ export default function OverviewPage(): ReactNode {
         // stays available — drag is swapped for explicit reorder arrows.
         // Stat cards pair two-across so a half-screen window isn't six
         // full-width rows holding one number each.
-        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+        <Box sx={{
+          display: 'grid',
+          gap: 2,
+          // Two stat cards across on a phone, four on a half-screen window —
+          // one number per 400px row wastes the space we do have.
+          gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', sm: 'repeat(4, minmax(0, 1fr))' },
+        }}>
           {orderedIds.map((id) => (
             <Box
               key={id}
