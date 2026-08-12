@@ -97,11 +97,30 @@ context, and the two severity cards borrow their accent color from the scale.
 
 ## Responsive strategy
 
-Three verified targets (1920/1440/834). The sidebar is permanent ≥900px and
-a drawer below; the filter panel is sticky-left on wide screens and collapses
-behind a button on tablet; toolbar controls wrap as a single group so no
-control ever strands on its own row. Phone is explicitly out of scope — this
-is a workstation tool.
+Verified at 1920, 1440, 850 and 390px. The sidebar is permanent ≥900px and a
+drawer below; the filter panel is sticky-left on wide screens and collapses
+behind a button below; toolbar controls wrap as a single group so no control
+ever strands on its own row.
+
+The guiding rule below 900px is **adapt the affordance, keep the capability**:
+
+- **Dashboard customization survives touch.** The drag-and-drop grid is a
+  pointer affordance, so narrow screens get explicit up/down reorder arrows
+  over the same widget model — same hide, same add-a-chart, same persistence.
+  Dropping customization on mobile would have been the easy call; replacing
+  the *interaction* while keeping the *feature* is the right one.
+- **The Explorer trades columns for depth.** Nine columns at 390px is endless
+  side-scrolling, so phones render severity, CVE and CVSS, and the peek
+  drawer carries the full record one tap away. Saved column preferences
+  aren't overwritten — they express intent, and the viewport adds its own
+  constraint on top; the Columns menu says so rather than appearing broken.
+- **Charts yield labels before they yield data.** Label gutters scale with
+  width and the character budget is derived from the gutter (glyph widths
+  vary enough that flat caps clipped). Truncation is *middle*-out, because
+  these labels differ at the tail — `app_jxdyheml:S90.44.1` vs `…45.0`, and
+  the two "Exploit exists" risk factors — so trailing ellipsis would render
+  distinct rows identically. Below 340px the donut stacks over its legend
+  instead of competing with it.
 
 ## The light "enterprise" theme
 
